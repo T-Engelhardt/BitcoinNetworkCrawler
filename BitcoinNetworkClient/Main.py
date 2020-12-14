@@ -10,13 +10,18 @@ from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
 import ipaddress
 import json 
 import random
+import logging
 
 def start():
     
     print("RUN")
+    
+    logging.basicConfig(level=logging.DEBUG,
+                    format='(%(threadName)-10s) %(message)s',
+                    )
 
-    ipList = [["127.0.0.1", 1111, "regtest"]]
-    #ipList = [["162.214.64.156", 8333, "main"]]
+    #ipList = [["127.0.0.1", 1111, "regtest"]]
+    ipList = [["162.214.64.156", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
     q = NetworkQueue(2, 1)
     q.start()

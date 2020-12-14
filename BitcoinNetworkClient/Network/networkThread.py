@@ -1,5 +1,5 @@
+import logging
 from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
-from BitcoinNetworkClient.Network.responseHandler import responseHandler
 import random
 from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
@@ -21,32 +21,38 @@ class Client(threading.Thread):
 
     def __init__(self, threadID, q, queueLock, exitFlag, exitFlagLock):
         threading.Thread.__init__(self)
-        self.threadID = threadID
+        self.name = ("ClientThread " + str(threadID))
         self.q = q
         self.queueLock = queueLock
         self.exitFlag = exitFlag
         self.exitFlagLock = exitFlagLock
         self.size = 4096
         self.connected = False
+        self.sendEvent = threading.Event()
 
     def run(self):
-        print("Starting " + self.name)
+        logging.debug("Starting")
 
         self.exitFlagLock.acquire()
         flag = self.exitFlag.full()
         self.exitFlagLock.release()
 
         while flag:
+            logging.debug('Waiting for lock -> NetworkQueue')
             self.queueLock.acquire()
             if not self.q.empty():
+                logging.debug('Acquired lock -> NetworkQueue')
                 qdata = self.q.get()
-                self.tracker = bitcoinConnection(qdata)
                 self.queueLock.release()
+                self.tracker = bitcoinConnection(qdata, self.sendEvent)
 
                 self.open_socket()
 
                 if(self.connected):
-                    self.socket_send()
+                    #start send recive threads and add threads
+                    #TODO
+                    ClientSent(self.server, self.tracker, self.sendEvent).start()
+                    ClientRecv(self.server, self.tracker).start()
                 
                 #get exit flag
                 self.exitFlagLock.acquire()
@@ -55,6 +61,7 @@ class Client(threading.Thread):
             else:
                 self.queueLock.release()
                 #wait for new queue entrys
+                logging.debug('Waiting for new Tasks')
                 sleep(5)
 
                 #get exit flag
@@ -62,8 +69,9 @@ class Client(threading.Thread):
                 flag = self.exitFlag.full()
                 self.exitFlagLock.release()
 
-        print("Exiting ", self.name)
+        logging.debug('Exiting')
 
+    '''
     def socket_send(self):
 
         SendID = 0
@@ -90,7 +98,7 @@ class Client(threading.Thread):
                         data2 = self.server.recv(self.size)
 
                 #TODO
-                self.tracker.setRecvID(data + data2, RecvID)
+                self.tracker.recvMsg(RecvID, data + data2)
                 RecvID += 1
 
             else:
@@ -98,16 +106,87 @@ class Client(threading.Thread):
 
         print(self.name, "connection closed")
         self.server.close()
+    '''
 
     def open_socket(self):
         """ Connect to the server """
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.settimeout(10)
+            self.server.settimeout(5)
             self.server.connect((self.tracker.getIP(),self.tracker.getPort(),))
             self.connected = True
-            print(self.name, "is connected")
+            logging.debug("connected")
         except socket.error:
             if self.server:
                 self.server.close()
-            print (self.name, "Could not open socket")
+            logging.debug("Could not open socket")
+
+class ClientSent(threading.Thread):
+
+    def __init__(self, socket, tracker, event):
+        threading.Thread.__init__(self)
+        self.name = ("ClientSent")
+        self.server = socket
+        self.event = event
+        self.tracker = tracker
+
+    def run(self):
+
+        while True:
+            logging.debug("waiting")
+            self.event.wait()
+            logging.debug("send Data")
+
+            senddata = self.tracker.getSendMsg()
+            #saftey check -> Can be remove probably in the future
+            if(senddata != None):
+                self.server.send(bytes(senddata))
+            self.event.clear()
+
+
+
+class ClientRecv(threading.Thread):
+
+    def __init__(self, socket, tracker):
+        threading.Thread.__init__(self)
+        self.name = ("ClientRecv")
+
+        self.tracker = tracker
+        self.server = socket
+
+    def run(self):
+
+        RecvID = 0
+        timeoutCounter = 0
+
+        while self.tracker.keepOpen():
+
+            self.server.setblocking(0)
+            ready = select.select([self.server], [], [], 10)
+            if ready[0]:
+                data2 = b''
+                data = self.server.recv(4096)
+                timeoutCounter = 0
+
+                #only recived header
+                if len(data) == 24:
+                    ready2 = select.select([self.server], [], [], 10)
+                    if ready2[0]:
+                        data2 = self.server.recv(4096)
+                        timeoutCounter = 0
+                    else:
+                        logging.debug("timeout")
+                        timeoutCounter += 1
+
+                #TODO
+                self.tracker.recvMsg(RecvID, data + data2)
+                RecvID += 1
+
+            else:
+                logging.debug("timeout")
+                timeoutCounter += 1
+                if(timeoutCounter >= 6):
+                    break
+
+        logging.debug("connection closed")
+        self.server.close()

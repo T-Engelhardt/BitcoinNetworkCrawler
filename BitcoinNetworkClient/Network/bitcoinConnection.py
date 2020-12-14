@@ -1,4 +1,4 @@
-from BitcoinNetworkClient.Network.responseHandler import responseHandler
+from BitcoinNetworkClient.Network.responseHandler import responseHandlerData, responseHandlerThread
 import random
 from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
@@ -10,50 +10,30 @@ from time import time, sleep
 
 class bitcoinConnection:
 
-    def __init__(self, qdata):
+    def __init__(self, qdata, sendEvent):
         self.ip = qdata[0]
         self.port = qdata[1]
         self.chain = qdata[2]
 
+        self.sendEvent = sendEvent
         self.ckeepOpen = True
-        self.handler = responseHandler()
+        self.handlerData = responseHandlerData(self, self.chain, self.sendEvent)
 
         self.sendCmd = []
         self.recvCMD = []
 
+        self.initConnection()
 
-    def getSendID(self, ID):
-        #print("bitcoinConnection Send ", ID)
-        #new connection
-        if(len(self.recvCMD) == 0):
-            self.sendCmd.append("cmd")
-            return self.VersionMsg()
-        elif(self.recvCMD[-1] == "version"):
-            self.sendCmd.append("verack")
-            return self.VerackMsg()
-        #elif():
-        #   insert new cases here not below (len(self.recvCMD) >= 2)
-        #    pass
-        elif(len(self.recvCMD) >= 2):
-            if((self.recvCMD[-1] == "verack") and (self.recvCMD[-2] == "version")):
-                self.sendCmd.append("verack")
-                return self.VerackMsg()
-            else:
-                return self.endCase()
-        else:
-            return self.endCase()
-            
-    def endCase(self):
-        #self.ckeepOpen = False
-        if(self.sendCmd[-1] is not "getaddr"):
-            self.sendCmd.append("getaddr")
-            return self.GetAddrMsg()
+    def initConnection(self):
+        self.handlerData.setNextMsg(self.VersionMsg())
+        self.sendEvent.set()
 
-    def setRecvID(self, msg, ID):
-        #print("bitcoinConnection Recv ", ID)
-        self.handler.receivedData(msg, self.chain)
-        for cmd in self.handler.getLastCmd():
-            self.recvCMD.append(cmd)
+    def recvMsg(self, id, msg):
+        thread = responseHandlerThread(id, self.handlerData, msg)
+        thread.start()
+
+    def getSendMsg(self):
+        return self.handlerData.getNextMsg()
 
     def keepOpen(self):
         return self.ckeepOpen
@@ -106,3 +86,38 @@ class bitcoinConnection:
             "cmd": "getaddr",
             "payload": b''
         })
+
+    '''
+    def getSendID(self, ID):
+        #print("bitcoinConnection Send ", ID)
+        #new connection
+        if(len(self.recvCMD) == 0):
+            self.sendCmd.append("cmd")
+            return self.VersionMsg()
+        elif(self.recvCMD[-1] == "version"):
+            self.sendCmd.append("verack")
+            return self.VerackMsg()
+        #elif():
+        #   insert new cases here not below (len(self.recvCMD) >= 2)
+        #    pass
+        elif(len(self.recvCMD) >= 2):
+            if((self.recvCMD[-1] == "verack") and (self.recvCMD[-2] == "version")):
+                self.sendCmd.append("verack")
+                return self.VerackMsg()
+            else:
+                return self.endCase()
+        else:
+            return self.endCase()
+            
+    def endCase(self):
+        #self.ckeepOpen = False
+        if(self.sendCmd[-1] is not "getaddr"):
+            self.sendCmd.append("getaddr")
+            return self.GetAddrMsg()
+
+    def setRecvID(self, msg, ID):
+        #print("bitcoinConnection Recv ", ID)
+        self.handler.receivedData(msg, self.chain)
+        for cmd in self.handler.getLastCmd():
+            self.recvCMD.append(cmd)
+    '''
