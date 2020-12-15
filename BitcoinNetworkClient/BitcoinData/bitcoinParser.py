@@ -1,7 +1,7 @@
 #class to determine which bitcoinPayload is used form bitcoinData.Header
 import binascii
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinConst, BitcoinHeader
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import inv, ping, verack, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, verack, version
 from BitcoinNetworkClient.util.data1 import Bchar, Bint, data1util
 from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
 import json
@@ -73,6 +73,11 @@ class BitcoinEndcoder(json.JSONEncoder):
         if isinstance(obj, ping):
             return ({
                 "nonce": obj.getNonce()
+            })
+        if isinstance(obj, addr):
+            return ({
+                "count": obj.cdir["count"],
+                "addr_list": obj.cdir["addr_list"]
             })
         return json.JSONEncoder.default(self, obj)
 

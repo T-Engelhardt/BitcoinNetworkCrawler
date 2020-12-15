@@ -1,5 +1,5 @@
 from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
-from BitcoinNetworkClient.util.data1 import Bint, Endian
+from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
 
 
 class version:
@@ -104,7 +104,7 @@ class inv:
         cutBytes = Object[len(self.cdir["count"])::]
         foundSize = int(len(cutBytes) / 36)
         if(int(self.cdir["count"]) != foundSize):
-            raise Exception("inv Bytes: given count " + str(int(self.cdir["count"])) + "not equal to inventory of" + str(foundSize))
+            raise Exception("inv Bytes: given count " + str(int(self.cdir["count"])) + " not equal to inventory of " + str(foundSize))
         for x in range(foundSize):
             self.cdir["inventory"].append(InventoryVector(cutBytes[0+(x*36):36+(x*36)]))
 
@@ -148,3 +148,52 @@ class ping:
 
     def __len__(self):
         return len(self.cbytes)
+
+class addr:
+
+    def __init__(self, Object):
+        '''
+        input bytes or [NetworkAddress, ...]
+        '''
+        self.cdir = {
+            "count": type(Vint),
+            "addr_list": [] #type(NetworkAddress)
+        }
+
+        self.cbytes = b''
+        self.clength = 0
+
+        if(type(Object) is bytes):
+            self.cbytes = Object
+            self.clength = len(self.cbytes)
+            self.bytesToDir(Object)
+        else:
+            self.addrArrayToBytes(Object)
+
+    def bytesToDir(self, Object):
+        #TODO
+        self.cdir["count"] = Vint(Object[0:9])
+        print(bytes(self.cdir["count"]))
+        #cut Vint to get inventory
+        cutBytes = Object[len(self.cdir["count"])::]
+        foundSize = int(len(cutBytes) / 30)
+        if(int(self.cdir["count"]) != foundSize):
+            raise Exception("addr Bytes: given count " + str(int(self.cdir["count"])) + " not equal to inventory of " + str(foundSize))
+        for x in range(foundSize):
+            self.cdir["addr_list"].append(NetworkAddress(cutBytes[0+(x*30):30+(x*30)]))
+
+    def addrArrayToBytes(self, Object):
+        self.cdir["addr_list"] = Object
+        self.cdir["count"] = Vint(len(self.cdir["addr_list"]))
+        self.cbytes += bytes(self.cdir["count"])
+        for x in Object:
+            self.cbytes += bytes(x)
+
+    def getDir(self):
+        return self.cdir
+
+    def __bytes__(self):
+        return self.cbytes
+    
+    def __len__(self):
+        return self.clength

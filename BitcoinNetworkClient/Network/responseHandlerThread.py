@@ -40,12 +40,17 @@ class responseHandlerThread(threading.Thread):
         json_object = json.dumps(Header, indent = 4, cls=BitcoinEndcoder)
         
         if cmd == "verack":
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().VerackMsg())
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().verackMsg())
             self.cResponseHandlerData.getSendEvent().set()
         
         if cmd == "ping":
             pingNonce = Header.getDir()["payload"]
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pong(bytes(pingNonce)))
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pongMsg(bytes(pingNonce)))
+            self.cResponseHandlerData.getSendEvent().set()
+
+        if cmd == "feefilter":
+            #last message before inv data
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
             self.cResponseHandlerData.getSendEvent().set()
 
         if cmd == "inv":

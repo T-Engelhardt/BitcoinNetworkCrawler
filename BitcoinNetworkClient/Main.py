@@ -2,7 +2,7 @@ from time import sleep
 from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
 from BitcoinNetworkClient.Network.networkThread import Client
 from threading import Thread
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import inv, ping, verack, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, verack, version
 from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
 from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
 from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
@@ -34,10 +34,10 @@ def start():
     q.closeEmptyOrNot(True)
     q.waitForClients()
 
-    #with open("BitcoinNetworkClient/test/bin/InventoryVectorWitness.bin", "rb") as f:
+    #with open("BitcoinNetworkClient/test/bin/Inventory.bin", "rb") as f:
     #    read = bytes(f.read())
 
-    #json_object = json.dumps(test1, indent = 4, cls=BitcoinEndcoder)   
+    #json_object = json.dumps(inv(read), indent = 4, cls=BitcoinEndcoder)   
     #print(json_object)
 
     '''

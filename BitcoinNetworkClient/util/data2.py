@@ -22,26 +22,26 @@ class Vint:
             self.cbint = Bint(Object, 8, Endian.LITTLE)
         elif Object <= 65535:
             self.cPrefixBytes = b'\xfd'
-            self.cbint = Bint(Object, 16, Endian.BIG)
+            self.cbint = Bint(Object, 16, Endian.LITTLE)
         elif Object <= 4294967295:
             self.cPrefixBytes = b'\xfe'
-            self.cbint = Bint(Object, 32, Endian.BIG)
+            self.cbint = Bint(Object, 32, Endian.LITTLE)
         else:
             self.cPrefixBytes = b'\xff'
-            self.cbint = Bint(Object, 64, Endian.BIG)
+            self.cbint = Bint(Object, 64, Endian.LITTLE)
 
     def VintToBytes(self, Object):
         if Object[0] < 253:
             self.cbint = Bint(Object[0], 8, Endian.LITTLE)
         elif Object[0] <= 65535:
             self.cPrefixBytes = b'\xfd'
-            self.cbint = Bint(Object[1:3], 16, Endian.BIG)
+            self.cbint = Bint(Object[1:3], 16, Endian.LITTLE)
         elif Object[0] <= 4294967295:
             self.cPrefixBytes = b'\xfe'
-            self.cbint = Bint(Object[1:5], 32, Endian.BIG)
+            self.cbint = Bint(Object[1:5], 32, Endian.LITTLE)
         else:
             self.cPrefixBytes = b'\xff'
-            self.cbint = Bint(Object[1:9], 64, Endian.BIG)
+            self.cbint = Bint(Object[1:9], 64, Endian.LITTLE)
 
     def __int__(self):
         return int(self.cbint)
@@ -130,10 +130,10 @@ class NetworkAddress:
     def bytesToNA(self, Object):
         #with time
         if(len(Object) == 30):
-            self.cdir["time"] = Bint(Object[0:4], 32, Endian.BIG)
+            self.cdir["time"] = Bint(Object[0:4], 32, Endian.LITTLE)
             cutObject = Object[4::]
         else:
-            self.cdir["time"] = Bint(0, 32, Endian.BIG)
+            self.cdir["time"] = Bint(0, 32, Endian.LITTLE)
             cutObject = Object
 
         #services

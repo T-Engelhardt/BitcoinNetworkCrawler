@@ -154,7 +154,7 @@ class ClientRecv(threading.Thread):
                 if(self.server.fileno() == -1):
                     break
                 try:
-                    data1 = self.server.recv(4096)
+                    data1 = self.server.recv(2000000)
                     timeoutCounter = 0
                 except:
                     break
@@ -169,7 +169,7 @@ class ClientRecv(threading.Thread):
                 if(self.server.fileno() == -1):
                     break
                 try:
-                    data2 = self.server.recv(4096)
+                    data2 = self.server.recv(2000000)
                     timeoutCounter = 0
                 except:
                     break
@@ -184,7 +184,7 @@ class ClientRecv(threading.Thread):
                 if(self.server.fileno() == -1):
                     break
                 try:
-                    data3 = self.server.recv(4096)
+                    data3 = self.server.recv(2000000)
                     timeoutCounter = 0
                 except:
                     break

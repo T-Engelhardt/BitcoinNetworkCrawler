@@ -1,7 +1,7 @@
 from enum import Enum
 import hashlib
 from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import inv, ping, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, version
 
 class BitcoinConst:
 
@@ -91,6 +91,8 @@ class BitcoinHeader:
                 self.cdir["payload"] = inv(self.PayloadBytes)
             elif(self.cdir["cmd"] == "ping"):
                 self.cdir["payload"] = ping(self.PayloadBytes)
+            elif(self.cdir["cmd"] == "addr"):
+                self.cdir["payload"] = addr(self.PayloadBytes)
             else:
                 self.cdir["payload"] = self.PayloadBytes
 

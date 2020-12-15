@@ -80,21 +80,21 @@ class bitcoinConnection:
             "payload": tmp
         })
 
-    def VerackMsg(self):
+    def verackMsg(self):
         return BitcoinHeader({
             "chain": self.chain,
             "cmd": "verack",
             "payload": b''
         })
     
-    def GetAddrMsg(self):
+    def getaddrMsg(self):
         return BitcoinHeader({
             "chain": self.chain,
             "cmd": "getaddr",
             "payload": b''
         })
 
-    def pong(self, nonce):
+    def pongMsg(self, nonce):
         return BitcoinHeader({
             "chain": self.chain,
             "cmd": "pong",
