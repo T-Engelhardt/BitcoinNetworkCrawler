@@ -64,7 +64,7 @@ class bitcoinConnection:
             })),
             "addr_from": (NetworkAddress({
                 "time": Bint(0, 32, Endian.BIG),
-                "services": services([services.SERVICES_FLAG.NODE_WITNESS, services.SERVICES_FLAG.NODE_NETWORK_LIMITED]),
+                "services": services([services.SERVICES_FLAG.NODE_WITNESS,]),
                 "IPv6/4": ipaddress.ip_address('::'),
                 "port": Bint(0, 16, Endian.BIG)
             })),

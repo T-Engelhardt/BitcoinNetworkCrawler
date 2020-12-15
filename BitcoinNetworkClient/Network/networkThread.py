@@ -134,77 +134,61 @@ class ClientRecv(threading.Thread):
 
         self.cBitcoinConnection = bitcoinConnection
         self.server = socket
+        self.timeoutCounter = 0
 
     def run(self):
 
         RecvID = 0
-        timeoutCounter = 0
 
         while self.cBitcoinConnection.getKeepAlive():
 
-            data1 = b''
-            data2 = b''
-            data3 = b''
-            
-            #packet 1 
-            ready = select.select([self.server], [], [], 7.0)
-            logging.debug("Packet 1")
-            if ready[0]:
+            #while for connection // loop to recive multiple packets
+            #the loop packets tries to catch multiple packets but breaks out if x packets timeout -> add one timeout for whole loop
+
+            data = b''
+            loopTimeoutCounter = 0
+
+            for packetNr in range(50):
+                logging.debug("Packet "+ str(packetNr))
+
+                ready = select.select([self.server], [], [], 2.0)
+                if ready[0]:
                 #https://stackoverflow.com/a/45251241
-                if(self.server.fileno() == -1):
+                    if(self.server.fileno() == -1):
+                        self.cBitcoinConnection.setKeepAlive(False)
+                        break
+                    try:
+                        data += self.server.recv(4096)
+                        loopTimeoutCounter = 0
+                    except:
+                        self.cBitcoinConnection.setKeepAlive(False)
+                        break
+                else:
+                    loopTimeoutCounter += 1
+                    logging.debug("LoopTimeout " + str(loopTimeoutCounter))
+                    #final timeout
+                if(loopTimeoutCounter > 2):
                     break
-                try:
-                    data1 = self.server.recv(2000000)
-                    timeoutCounter = 0
-                except:
-                    break
-            else:
-                timeoutCounter += 1
-                logging.debug("timeout " + str(timeoutCounter))
 
-            #packet 2
-            ready = select.select([self.server], [], [], 7.0)
-            logging.debug("Packet 2")
-            if ready[0]:
-                if(self.server.fileno() == -1):
-                    break
-                try:
-                    data2 = self.server.recv(2000000)
-                    timeoutCounter = 0
-                except:
+            #get one timeout if no data is transmited in one rotation
+            if (len(data) == 0):
+                self.timeoutCounter += 1
+                #partner closed the connection
+                #self.server.recv returns nothing but loopTimeout +1 is not triggerd
+                if(loopTimeoutCounter == 0):
                     break
             else:
-                timeoutCounter += 1
-                logging.debug("timeout " + str(timeoutCounter))
-            
-            #packet 3
-            ready = select.select([self.server], [], [], 7.0)
-            logging.debug("Packet 3")
-            if ready[0]:
-                if(self.server.fileno() == -1):
-                    break
-                try:
-                    data3 = self.server.recv(2000000)
-                    timeoutCounter = 0
-                except:
-                    break
-            else:
-                timeoutCounter += 1
-                logging.debug("timeout " + str(timeoutCounter))
-
-            #partner closed the connection
-            #self.server.recv returns nothing but timeout +1 is not triggerd
-            if(timeoutCounter == 0 and (len(data1 + data2 + data3) == 0)):
-                break
+                self.timeoutCounter = 0
 
             #final timeout
-            if(timeoutCounter >= 6):
+            logging.debug("Timeout "+ str(self.timeoutCounter))
+            if(self.timeoutCounter > 3):
                 logging.debug("final timeout")
                 break
 
             #give packet to Bitcoin Connection
-            if(len(data1 + data2 + data3) != 0):
-                self.cBitcoinConnection.recvMsg(RecvID, data1 + data2 + data3)
+            if(len(data) != 0):
+                self.cBitcoinConnection.recvMsg(RecvID, data)
             RecvID += 1
 
         logging.debug("connection closed")
