@@ -11,6 +11,7 @@ import socket
 import threading
 import select
 from time import time, sleep
+import queue
 
 class Client(threading.Thread):
 
@@ -19,10 +20,11 @@ class Client(threading.Thread):
     https://stackoverflow.com/questions/2719017/how-to-set-timeout-on-pythons-socket-recv-method
     '''
 
-    def __init__(self, threadID, q, queueLock, exitFlag, exitFlagLock):
+    def __init__(self, threadID: int, queue: queue, queueLock: threading.Lock, exitFlag: queue, exitFlagLock: threading.Lock):
         threading.Thread.__init__(self)
         self.name = ("ClientThread " + str(threadID))
-        self.q = q
+
+        self.cQueue = queue
         self.queueLock = queueLock
         self.exitFlag = exitFlag
         self.exitFlagLock = exitFlagLock
@@ -40,19 +42,18 @@ class Client(threading.Thread):
         while flag:
             logging.debug('Waiting for lock -> NetworkQueue')
             self.queueLock.acquire()
-            if not self.q.empty():
+            if not self.cQueue.empty():
                 logging.debug('Acquired lock -> NetworkQueue')
-                qdata = self.q.get()
+                qdata = self.cQueue.get()
                 self.queueLock.release()
-                self.tracker = bitcoinConnection(qdata, self.sendEvent)
+
+                self.bitcoinConnection = bitcoinConnection(qdata, self.sendEvent)
 
                 self.open_socket()
 
                 if(self.connected):
-                    #start send recive threads and add threads
-                    #TODO
-                    ClientSent(self.server, self.tracker, self.sendEvent).start()
-                    ClientRecv(self.server, self.tracker).start()
+                    ClientSent(self.server, self.bitcoinConnection, self.sendEvent).start()
+                    ClientRecv(self.server, self.bitcoinConnection).start()
                 
                 #get exit flag
                 self.exitFlagLock.acquire()
@@ -71,49 +72,12 @@ class Client(threading.Thread):
 
         logging.debug('Exiting')
 
-    '''
-    def socket_send(self):
-
-        SendID = 0
-        RecvID = 0
-
-        while self.tracker.keepOpen():
-
-            senddata = self.tracker.getSendID(SendID)
-            #saftey check -> Can be remove probably in the future
-            if(senddata != None):
-                self.server.send(bytes(senddata))
-                SendID += 1
-
-            self.server.setblocking(0)
-            ready = select.select([self.server], [], [], 3)
-            if ready[0]:
-                data2 = b''
-                data = self.server.recv(self.size)
-
-                #only recived header
-                if len(data) == 24:
-                    ready2 = select.select([self.server], [], [], 3)
-                    if ready2[0]:
-                        data2 = self.server.recv(self.size)
-
-                #TODO
-                self.tracker.recvMsg(RecvID, data + data2)
-                RecvID += 1
-
-            else:
-                print(self.name, "timeout")
-
-        print(self.name, "connection closed")
-        self.server.close()
-    '''
-
     def open_socket(self):
         """ Connect to the server """
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server.settimeout(5)
-            self.server.connect((self.tracker.getIP(),self.tracker.getPort(),))
+            self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
             self.connected = True
             logging.debug("connected")
         except socket.error:
@@ -123,35 +87,39 @@ class Client(threading.Thread):
 
 class ClientSent(threading.Thread):
 
-    def __init__(self, socket, tracker, event):
+    def __init__(self, socket: socket, bitcoinConnection: bitcoinConnection, event: threading.Event):
         threading.Thread.__init__(self)
         self.name = ("ClientSent")
         self.server = socket
         self.event = event
-        self.tracker = tracker
+        self.cBitcoinConnection = bitcoinConnection
 
     def run(self):
 
         while True:
             logging.debug("waiting")
             self.event.wait()
-            logging.debug("send Data")
 
-            senddata = self.tracker.getSendMsg()
+            senddata = self.cBitcoinConnection.getSendMsg()
             #saftey check -> Can be remove probably in the future
             if(senddata != None):
-                self.server.send(bytes(senddata))
+                try:
+                    logging.debug("send Data")
+                    self.server.send(bytes(senddata))
+                except Exception as e:
+                    logging.debug(e)
+                    break
             self.event.clear()
 
 
 
 class ClientRecv(threading.Thread):
 
-    def __init__(self, socket, tracker):
+    def __init__(self, socket: socket, bitcoinConnection: bitcoinConnection):
         threading.Thread.__init__(self)
         self.name = ("ClientRecv")
 
-        self.tracker = tracker
+        self.cBitcoinConnection = bitcoinConnection
         self.server = socket
 
     def run(self):
@@ -159,34 +127,52 @@ class ClientRecv(threading.Thread):
         RecvID = 0
         timeoutCounter = 0
 
-        while self.tracker.keepOpen():
+        while self.cBitcoinConnection.getKeepAlive():
+
+            data1 = b''
+            data2 = b''
+            data3 = b''
 
             self.server.setblocking(0)
+
+            #packet 1
             ready = select.select([self.server], [], [], 10)
             if ready[0]:
-                data2 = b''
-                data = self.server.recv(4096)
+                data1 = self.server.recv(4096)
                 timeoutCounter = 0
-
-                #only recived header
-                if len(data) == 24:
-                    ready2 = select.select([self.server], [], [], 10)
-                    if ready2[0]:
-                        data2 = self.server.recv(4096)
-                        timeoutCounter = 0
-                    else:
-                        logging.debug("timeout")
-                        timeoutCounter += 1
-
-                #TODO
-                self.tracker.recvMsg(RecvID, data + data2)
-                RecvID += 1
-
             else:
-                logging.debug("timeout")
                 timeoutCounter += 1
-                if(timeoutCounter >= 6):
-                    break
+                logging.debug("timeout " + str(timeoutCounter))
+                
+            
+            #packet 2
+            ready = select.select([self.server], [], [], 6)
+            if ready[0]:
+                data2 = self.server.recv(4096)
+                timeoutCounter = 0
+            else:
+                timeoutCounter += 1
+                logging.debug("timeout " + str(timeoutCounter))
+            
+            #packet 3
+            ready = select.select([self.server], [], [], 3)
+            if ready[0]:
+                data3 = self.server.recv(4096)
+                timeoutCounter = 0
+            else:
+                timeoutCounter += 1
+                logging.debug("timeout " + str(timeoutCounter))
+
+            #give packet to Bitcoin Connection
+            if(len(data1 + data2 + data3) != 0):
+                self.cBitcoinConnection.recvMsg(RecvID, data1 + data2 + data3)
+            RecvID += 1
+
+            #final timeout
+            if(timeoutCounter >= 6):
+                logging.debug("finale timeout")
+                break
 
         logging.debug("connection closed")
         self.server.close()
+        self.cBitcoinConnection.killSendThread()
