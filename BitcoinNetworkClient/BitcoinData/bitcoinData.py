@@ -1,7 +1,7 @@
 from enum import Enum
 import hashlib
 from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import inv, ping, version
 
 class BitcoinConst:
 
@@ -51,7 +51,6 @@ class BitcoinHeader:
         payloadhash = hashlib.sha256((hashlib.sha256(bytes(self.cdir["payload"])).digest())).digest()
         self.HeaderBytes +=payloadhash[0:4]
         self.PayloadChecksum = payloadhash[0:4]
-        #TODO dont use bytes instead use class in bitcoinPayload
         #add payload to class
         self.PayloadBytes = bytes(self.cdir["payload"])
 
@@ -88,6 +87,10 @@ class BitcoinHeader:
             self.PayloadChecksum = payloadhash[0:4]
             if(self.cdir["cmd"] == "version"):
                  self.cdir["payload"] = version(self.PayloadBytes)
+            elif(self.cdir["cmd"] == "inv"):
+                self.cdir["payload"] = inv(self.PayloadBytes)
+            elif(self.cdir["cmd"] == "ping"):
+                self.cdir["payload"] = ping(self.PayloadBytes)
             else:
                 self.cdir["payload"] = self.PayloadBytes
 

@@ -3,7 +3,7 @@ import threading
 import queue
 from BitcoinNetworkClient.Network.networkThread import Client
 
-class NetworkQueue:
+class NetworkQueue(threading.Thread):
 
     def __init__(self, threadsnr, queuelenght):
         self.exitFlagLock = threading.Lock()
@@ -42,8 +42,8 @@ class NetworkQueue:
         self.exitFlag.get()
 
 
-    def join(self):
+    def waitForClients(self):
         # Wait for all threads to complete
         for t in self.threads:
             t.join()
-        logging.debug("Exiting Main Thread")
+        logging.debug("Exiting Network Queue Thread")

@@ -1,4 +1,4 @@
-from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
+from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
 from BitcoinNetworkClient.util.data1 import Bint, Endian
 
 
@@ -76,3 +76,75 @@ class verack:
 
     def __bytes__(self):
         return b''
+
+class inv:
+
+    def __init__(self, Object):
+        '''
+        input bytes or [InventoryVector, ...]
+        '''
+        self.cdir = {
+            "count": type(Vint),
+            "inventory": [] #type(InventoryVector)
+        }
+
+        self.cbytes = b''
+        self.clength = 0
+
+        if(type(Object) is bytes):
+            self.cbytes = Object
+            self.clength = len(self.cbytes)
+            self.bytesToDir(Object)
+        else:
+            self.InvArrayToBytes(Object)
+
+    def bytesToDir(self, Object):
+        self.cdir["count"] = Vint(Object[0:9])
+        #cut Vint to get inventory
+        cutBytes = Object[len(self.cdir["count"])::]
+        foundSize = int(len(cutBytes) / 36)
+        if(int(self.cdir["count"]) != foundSize):
+            raise Exception("inv Bytes: given count " + str(int(self.cdir["count"])) + "not equal to inventory of" + str(foundSize))
+        for x in range(foundSize):
+            self.cdir["inventory"].append(InventoryVector(cutBytes[0+(x*36):36+(x*36)]))
+
+    def InvArrayToBytes(self, Object):
+        self.cdir["inventory"] = Object
+        self.cdir["count"] = Vint(len(self.cdir["inventory"]))
+        self.cbytes += bytes(self.cdir["count"])
+        for x in Object:
+            self.cbytes += bytes(x)
+
+    def getDir(self):
+        return self.cdir
+
+    def __bytes__(self):
+        return self.cbytes
+    
+    def __len__(self):
+        return self.clength
+
+class ping:
+    #ping or pong with nounce 
+    #input bytes or Bint(Object, 64, Endian.BIG)
+
+    def __init__(self, Object):
+
+        self.cbytes = b''
+        self.cnonce = type(Bint)
+
+        if(type(Object) is bytes):
+            self.cbytes = Object
+            self.cnonce = Bint(Object, 64, Endian.BIG)
+        else:
+            self.cnonce = Object
+            self.cbytes = bytes(Object)
+            
+    def getNonce(self):
+        return self.cnonce
+    
+    def __bytes__(self):
+        return self.cbytes
+
+    def __len__(self):
+        return len(self.cbytes)

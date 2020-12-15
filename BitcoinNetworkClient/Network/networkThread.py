@@ -22,7 +22,8 @@ class Client(threading.Thread):
 
     def __init__(self, threadID: int, queue: queue, queueLock: threading.Lock, exitFlag: queue, exitFlagLock: threading.Lock):
         threading.Thread.__init__(self)
-        self.name = ("ClientThread " + str(threadID))
+        self.name = ("Client Mother " + str(threadID))
+        self.threadID = threadID
 
         self.cQueue = queue
         self.queueLock = queueLock
@@ -31,6 +32,7 @@ class Client(threading.Thread):
         self.size = 4096
         self.connected = False
         self.sendEvent = threading.Event()
+        self.ThreadChilds = []
 
     def run(self):
         logging.debug("Starting")
@@ -52,8 +54,10 @@ class Client(threading.Thread):
                 self.open_socket()
 
                 if(self.connected):
-                    ClientSent(self.server, self.bitcoinConnection, self.sendEvent).start()
-                    ClientRecv(self.server, self.bitcoinConnection).start()
+                    self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection, self.sendEvent))
+                    self.ThreadChilds.append(ClientRecv(self.threadID, self.server, self.bitcoinConnection))
+                    for t in self.ThreadChilds:
+                        t.start()
                 
                 #get exit flag
                 self.exitFlagLock.acquire()
@@ -70,14 +74,21 @@ class Client(threading.Thread):
                 flag = self.exitFlag.full()
                 self.exitFlagLock.release()
 
-        logging.debug('Exiting')
+        self.waitForChilds()
+        logging.debug("Exiting Client Thread")
+
+    def waitForChilds(self):
+        # Wait for all threads to complete
+        for t in self.ThreadChilds:
+            t.join()
 
     def open_socket(self):
         """ Connect to the server """
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.settimeout(5)
+            #self.server.settimeout(60.0)
             self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
+            self.server.setblocking(0)
             self.connected = True
             logging.debug("connected")
         except socket.error:
@@ -87,9 +98,9 @@ class Client(threading.Thread):
 
 class ClientSent(threading.Thread):
 
-    def __init__(self, socket: socket, bitcoinConnection: bitcoinConnection, event: threading.Event):
+    def __init__(self, MotherThreadID: int, socket: socket, bitcoinConnection: bitcoinConnection, event: threading.Event):
         threading.Thread.__init__(self)
-        self.name = ("ClientSent")
+        self.name = ("Client "+ str(MotherThreadID) +" Sent")
         self.server = socket
         self.event = event
         self.cBitcoinConnection = bitcoinConnection
@@ -104,20 +115,22 @@ class ClientSent(threading.Thread):
             #saftey check -> Can be remove probably in the future
             if(senddata != None):
                 try:
-                    logging.debug("send Data")
+                    logging.debug("send Data: " + senddata.getDir()["cmd"])
                     self.server.send(bytes(senddata))
                 except Exception as e:
                     logging.debug(e)
-                    break
+            else:
+                #type NONE found so close Thread
+                break
             self.event.clear()
 
 
 
 class ClientRecv(threading.Thread):
 
-    def __init__(self, socket: socket, bitcoinConnection: bitcoinConnection):
+    def __init__(self, MotherThreadID: int, socket: socket, bitcoinConnection: bitcoinConnection):
         threading.Thread.__init__(self)
-        self.name = ("ClientRecv")
+        self.name = ("Client "+ str(MotherThreadID) +" Recv")
 
         self.cBitcoinConnection = bitcoinConnection
         self.server = socket
@@ -132,46 +145,67 @@ class ClientRecv(threading.Thread):
             data1 = b''
             data2 = b''
             data3 = b''
-
-            self.server.setblocking(0)
-
-            #packet 1
-            ready = select.select([self.server], [], [], 10)
+            
+            #packet 1 
+            ready = select.select([self.server], [], [], 7.0)
+            logging.debug("Packet 1")
             if ready[0]:
-                data1 = self.server.recv(4096)
-                timeoutCounter = 0
+                #https://stackoverflow.com/a/45251241
+                if(self.server.fileno() == -1):
+                    break
+                try:
+                    data1 = self.server.recv(4096)
+                    timeoutCounter = 0
+                except:
+                    break
             else:
                 timeoutCounter += 1
                 logging.debug("timeout " + str(timeoutCounter))
-                
-            
+
             #packet 2
-            ready = select.select([self.server], [], [], 6)
+            ready = select.select([self.server], [], [], 7.0)
+            logging.debug("Packet 2")
             if ready[0]:
-                data2 = self.server.recv(4096)
-                timeoutCounter = 0
+                if(self.server.fileno() == -1):
+                    break
+                try:
+                    data2 = self.server.recv(4096)
+                    timeoutCounter = 0
+                except:
+                    break
             else:
                 timeoutCounter += 1
                 logging.debug("timeout " + str(timeoutCounter))
             
             #packet 3
-            ready = select.select([self.server], [], [], 3)
+            ready = select.select([self.server], [], [], 7.0)
+            logging.debug("Packet 3")
             if ready[0]:
-                data3 = self.server.recv(4096)
-                timeoutCounter = 0
+                if(self.server.fileno() == -1):
+                    break
+                try:
+                    data3 = self.server.recv(4096)
+                    timeoutCounter = 0
+                except:
+                    break
             else:
                 timeoutCounter += 1
                 logging.debug("timeout " + str(timeoutCounter))
+
+            #partner closed the connection
+            #self.server.recv returns nothing but timeout +1 is not triggerd
+            if(timeoutCounter == 0 and (len(data1 + data2 + data3) == 0)):
+                break
+
+            #final timeout
+            if(timeoutCounter >= 6):
+                logging.debug("final timeout")
+                break
 
             #give packet to Bitcoin Connection
             if(len(data1 + data2 + data3) != 0):
                 self.cBitcoinConnection.recvMsg(RecvID, data1 + data2 + data3)
             RecvID += 1
-
-            #final timeout
-            if(timeoutCounter >= 6):
-                logging.debug("finale timeout")
-                break
 
         logging.debug("connection closed")
         self.server.close()

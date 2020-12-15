@@ -251,3 +251,66 @@ class services:
     
     def __bytes__(self):
         return self.cbytes
+
+class InventoryVector:
+
+    class INV_TYPE(Enum):
+        ERROR = 0 
+        MSG_TX = 1 
+        MSG_BLOCK = 2 
+        MSG_FILTERED_BLOCK = 3 
+        MSG_WITNESS_TX  = 1073741825 #0x40000001
+        MSG_WITNESS_BLOCK = 1073741826 #0x40000002
+        MSG_FILTERED_WITNESS_BLOCK = 1073741827 #0x40000003
+
+    def __init__(self, Object):
+        '''
+        test1 = InventoryVector({
+        "type": InventoryVector.INV_TYPE.MSG_TX,
+        "hash": "154c7d908a5f5d7f572bc184fd076f4ff91a3f364124dfcd822e09ccc8f15591"
+        })
+        test1 = InventoryVector({
+        "type": InventoryVector.INV_TYPE.MSG_WITNESS_BLOCK,
+        "hash": "0000000000000249ce1813cbbff7ef80b014e43752acac2fbd98e3e69a6a9fd2"
+        })
+        '''
+        self.cdir = {
+            "type": type(InventoryVector.INV_TYPE),
+            "hash": "" #hex
+        }
+
+        self.cbytes = b''
+        self.TypeNames = type(InventoryVector.INV_TYPE)
+
+        if(type(Object) is bytes):
+            self.cbytes = Object
+            self.bytesToDir()
+        else:
+            self.cdir = Object
+            self.DirToBytes()
+    
+    def bytesToDir(self):
+        #get value of Type
+        intType = int(Bint(data1util.swapBytes(self.cbytes[0:4]), 32, Endian.BIG))
+        #get Type from value
+        for x in InventoryVector.INV_TYPE:
+            if(x.value == intType):
+                self.TypeNames = x
+        self.cdir["type"] = self.TypeNames
+        #hash
+        hash = Bchar(data1util.swapBytes(self.cbytes[4::]), 32 , Endian.LITTLE)
+        self.cdir["hash"] = hash.getHex()
+
+    def DirToBytes(self):
+        self.cbytes += bytes(Bint(self.cdir["type"].value, 32, Endian.LITTLE))
+        self.cbytes += data1util.swapBytes(bytearray.fromhex(self.cdir["hash"]))
+
+    def getTypeNamesStr(self):
+        return self.TypeNames.name
+
+    def __bytes__(self):
+        return self.cbytes
+    
+    def __len__(self):
+        #fixed length
+        return len(self.cbytes)

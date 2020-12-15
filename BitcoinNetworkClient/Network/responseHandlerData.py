@@ -58,7 +58,11 @@ class responseHandlerData():
         self.recvCmdLock.acquire()
         try:
             logging.debug('Write: Acquired lock -> recvCmd')
-            self.recvCmd.append(Object)
+            #Reset recvCmd
+            if(Object == "RECV_CMD_RESET"):
+                self.recvCmd = []
+            else:
+                self.recvCmd.append(Object)
         finally:
             self.recvCmdLock.release()
     

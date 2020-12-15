@@ -7,7 +7,7 @@ from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutB
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
 from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
 from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import ping, version
 import ipaddress
 import random
 
@@ -18,6 +18,8 @@ class responseHandlerThread(threading.Thread):
         self.name = ("responseHandlerThread " + str(threadID))
         self.cResponseHandlerData = responseHandlerData
         self.recvMsg = recvMsg
+        self.recvPingNonce = b''
+        self.cRecvCMD = []
 
     def run(self):
         #cut if more then one message
@@ -26,7 +28,14 @@ class responseHandlerThread(threading.Thread):
         for data in cutMsgArray:
             try:
                 tmp = BitcoinHeader(data)
+                #no use yet
                 self.cResponseHandlerData.addRecvCmd(tmp.getDir()["cmd"])
+                #in use
+                self.cRecvCMD.append(tmp.getDir()["cmd"])
+                #safe ping nonce
+                if(tmp.getDir()["cmd"] == "ping"):
+                    self.recvPingNonce = tmp.getDir()["payload"]
+                #dump message
                 json_object = json.dumps(tmp, indent = 4, cls=BitcoinEndcoder)   
                 print(json_object)
             except Exception as e:
@@ -35,8 +44,12 @@ class responseHandlerThread(threading.Thread):
         self.handleResponse()
 
     def handleResponse(self):
-        cmd = self.cResponseHandlerData.getRecvCmd()
-        if(len(cmd) > 0):
-            if(cmd[-1] == "verack"):
-                self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().VerackMsg())
-                self.cResponseHandlerData.getSendEvent().set()
+        cmd = self.cRecvCMD
+        logging.debug("Recived CMD " + str(cmd))
+        #check
+        if "verack" in cmd:
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().VerackMsg())
+            self.cResponseHandlerData.getSendEvent().set()
+        if "ping" in cmd:
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pong(self.recvPingNonce))
+            self.cResponseHandlerData.getSendEvent().set()

@@ -2,10 +2,10 @@ from time import sleep
 from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
 from BitcoinNetworkClient.Network.networkThread import Client
 from threading import Thread
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import verack, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import inv, ping, verack, version
 from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
 from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
-from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
+from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
 import ipaddress
 import json 
@@ -21,7 +21,7 @@ def start():
                     )
 
     #ipList = [["127.0.0.1", 1111, "regtest"]]
-    ipList = [["35.228.230.233", 8333, "main"]]
+    ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
     q = NetworkQueue(2, 1)
     q.start()
@@ -32,8 +32,42 @@ def start():
         print("queue Full")
     
     q.closeEmptyOrNot(True)
-    q.join()
+    q.waitForClients()
     
+    #with open("BitcoinNetworkClient/test/bin/ping.bin", "rb") as f:
+    #    read = bytes(f.read())
+ 
+
+    #json_object = json.dumps(test1, indent = 4, cls=BitcoinEndcoder)   
+    #print(json_object)
+
+    #with open("BitcoinNetworkClient/test/bin/InventoryVectorWitness.bin", "rb") as f:
+    #    read = bytes(f.read())
+
+    #json_object = json.dumps(test1, indent = 4, cls=BitcoinEndcoder)   
+    #print(json_object)
+
+    '''
+    test1 = InventoryVector({
+        "type": InventoryVector.INV_TYPE.MSG_TX,
+        "hash": "154c7d908a5f5d7f572bc184fd076f4ff91a3f364124dfcd822e09ccc8f15591"
+    })
+    #print(bytes(test1))
+
+    test2 = InventoryVector({
+        "type": InventoryVector.INV_TYPE.MSG_WITNESS_BLOCK,
+        "hash": "0000000000000249ce1813cbbff7ef80b014e43752acac2fbd98e3e69a6a9fd2"
+    })
+    #print(bytes(test2))
+    testArray = [test1, test2]
+    test3 = inv([test1, test2])
+    print(bytes(test3))
+
+    test4 = inv(b'\x02\x01\x00\x00\x00\x91U\xf1\xc8\xcc\t.\x82\xcd\xdf$A6?\x1a\xf9Oo\x07\xfd\x84\xc1+W\x7f]_\x8a\x90}L\x15\x02\x00\x00@\xd2\x9fj\x9a\xe6\xe3\x98\xbd/\xac\xacR7\xe4\x14\xb0\x80\xef\xf7\xbf\xcb\x13\x18\xceI\x02\x00\x00\x00\x00\x00\x00')
+    json_object = json.dumps(test4, indent = 4, cls=BitcoinEndcoder)   
+    print(json_object)
+    '''
+
     '''
     self.versionPayload = version({
             "version": Bint(70015, 32, Endian.LITTLE),

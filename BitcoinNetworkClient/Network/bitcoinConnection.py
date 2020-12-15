@@ -38,8 +38,11 @@ class bitcoinConnection:
     def getKeepAlive(self):
         return self.KeepAlive
 
+    def setKeepAlive(self, Flag: bool):
+        self.KeepAlive = Flag
+
     def killSendThread(self):
-        self.cResponseHandlerData.setNextMsg(b'')
+        self.cResponseHandlerData.setNextMsg(None)
         self.cResponseHandlerData.getSendEvent().set()
 
     def getIP(self):
@@ -50,8 +53,8 @@ class bitcoinConnection:
 
     def VersionMsg(self):
         tmp = version({
-            "version": Bint(70013, 32, Endian.LITTLE),
-            "services": services([services.SERVICES_FLAG.NODE_NETWORK_LIMITED, services.SERVICES_FLAG.NODE_WITNESS]),
+            "version": Bint(70015, 32, Endian.LITTLE),
+            "services": services([services.SERVICES_FLAG.NODE_WITNESS]),
             "timestamp": Bint(int(time()), 64, Endian.LITTLE),
             "addr_recv": (NetworkAddress({
                 "time": Bint(0, 32, Endian.BIG),
@@ -89,4 +92,11 @@ class bitcoinConnection:
             "chain": self.chain,
             "cmd": "getaddr",
             "payload": b''
+        })
+
+    def pong(self, nonce):
+        return BitcoinHeader({
+            "chain": self.chain,
+            "cmd": "pong",
+            "payload": nonce
         })
