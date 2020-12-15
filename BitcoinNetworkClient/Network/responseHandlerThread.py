@@ -18,8 +18,6 @@ class responseHandlerThread(threading.Thread):
         self.name = ("responseHandlerThread " + str(threadID))
         self.cResponseHandlerData = responseHandlerData
         self.recvMsg = recvMsg
-        self.recvPingNonce = b''
-        self.cRecvCMD = []
 
     def run(self):
         #cut if more then one message
@@ -28,28 +26,47 @@ class responseHandlerThread(threading.Thread):
         for data in cutMsgArray:
             try:
                 tmp = BitcoinHeader(data)
-                #no use yet
+                #no in use yet // just tracks the recv cmd history
                 self.cResponseHandlerData.addRecvCmd(tmp.getDir()["cmd"])
-                #in use
-                self.cRecvCMD.append(tmp.getDir()["cmd"])
-                #safe ping nonce
-                if(tmp.getDir()["cmd"] == "ping"):
-                    self.recvPingNonce = tmp.getDir()["payload"]
-                #dump message
-                json_object = json.dumps(tmp, indent = 4, cls=BitcoinEndcoder)   
-                print(json_object)
+                #handle response
+                self.handleResponse(tmp)
             except Exception as e:
                 #no valid payload was found
                 logging.debug(e)
-        self.handleResponse()
 
-    def handleResponse(self):
-        cmd = self.cRecvCMD
-        logging.debug("Recived CMD " + str(cmd))
-        #check
-        if "verack" in cmd:
+    def handleResponse(self, Header: BitcoinHeader):
+
+        cmd = Header.getDir()["cmd"]
+        json_object = json.dumps(Header, indent = 4, cls=BitcoinEndcoder)
+        
+        if cmd == "verack":
             self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().VerackMsg())
             self.cResponseHandlerData.getSendEvent().set()
-        if "ping" in cmd:
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pong(self.recvPingNonce))
+        
+        if cmd == "ping":
+            pingNonce = Header.getDir()["payload"]
+            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pong(bytes(pingNonce)))
             self.cResponseHandlerData.getSendEvent().set()
+
+        if cmd == "inv":
+            #remove unnwanted inv data
+            wantedInv = []
+            tmp = json.loads(json_object)
+            for x in tmp["payload"]["inventory"]:
+                if ((x["type"] == "MSG_TX") or (x["type"] =="MSG_WITNESS_TX")):
+                    continue
+                wantedInv.append(x)
+            
+            showInv = {
+                "chain": tmp["chain"],
+                "command": tmp["command"],
+                "length": tmp["length"],
+                "payload": wantedInv
+            }
+            print(json.dumps(showInv, indent= 4))
+
+            #no need for more processing
+            return
+
+        #default
+        print(json_object)    

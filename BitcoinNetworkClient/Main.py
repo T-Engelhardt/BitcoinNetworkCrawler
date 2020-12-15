@@ -33,13 +33,6 @@ def start():
     
     q.closeEmptyOrNot(True)
     q.waitForClients()
-    
-    #with open("BitcoinNetworkClient/test/bin/ping.bin", "rb") as f:
-    #    read = bytes(f.read())
- 
-
-    #json_object = json.dumps(test1, indent = 4, cls=BitcoinEndcoder)   
-    #print(json_object)
 
     #with open("BitcoinNetworkClient/test/bin/InventoryVectorWitness.bin", "rb") as f:
     #    read = bytes(f.read())
