@@ -1,3 +1,5 @@
+import threading
+from BitcoinNetworkClient.db.dbConnector import dbConnector
 from time import sleep
 from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
 from BitcoinNetworkClient.Network.networkThread import Client
@@ -21,24 +23,39 @@ def start():
                     )
 
     #ipList = [["127.0.0.1", 1111, "regtest"]]
-    ipList = [["34.80.224.42", 8333, "main"]]
+    #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
     q = NetworkQueue(2, 1)
     q.start()
 
+    '''
     try:
         q.addToQueue(ipList)
     except:
         print("queue Full")
     
+    '''
     q.closeEmptyOrNot(True)
     q.waitForClients()
+    
 
-    #with open("BitcoinNetworkClient/test/bin/Inventory.bin", "rb") as f:
-    #    read = bytes(f.read())
+    db = dbConnector()
+    db.insertIP("testnet3", "127.0.0.3", 8312)
 
-    #json_object = json.dumps(inv(read), indent = 4, cls=BitcoinEndcoder)   
-    #print(json_object)
+    with open("BitcoinNetworkClient/test/bin/realVersion.bin", "rb") as f:
+        read = bytes(f.read())
+
+    json_object = json.dumps(BitcoinHeader(read), indent = 4, cls=BitcoinEndcoder)
+    print(json_object)   
+    
+    db.insertJson("testnet3", "127.0.0.2", 8333, json_object)
+    db.fillQueue("testnet3", q)
+
+    db.close()
+    
+    print(q.getItemQueue())
+    print(q.getItemQueue())
+
 
     '''
     test1 = InventoryVector({

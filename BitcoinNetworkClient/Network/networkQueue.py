@@ -29,7 +29,19 @@ class NetworkQueue(threading.Thread):
         # Fill the queue
         self.queueLock.acquire()
         for data in datalist:
-            self.workQueue.put(data, False)
+            try:
+                self.workQueue.put(data, False)
+            except:
+                logging.debug("Queue Full")
+        self.queueLock.release()
+
+    def getItemQueue(self):
+        self.queueLock.acquire()
+        if(self.workQueue.empty()):
+            logging.debug("Queue Empty")
+        else:
+            #TODO change block
+            return self.workQueue.get(block=False)
         self.queueLock.release()
 
     def closeEmptyOrNot(self, flag):
@@ -41,9 +53,11 @@ class NetworkQueue(threading.Thread):
         # Notify threads it's time to exit
         self.exitFlag.get()
 
-
     def waitForClients(self):
         # Wait for all threads to complete
         for t in self.threads:
             t.join()
         logging.debug("Exiting Network Queue Thread")
+
+    def getQueueObject(self):
+        return self.workQueue

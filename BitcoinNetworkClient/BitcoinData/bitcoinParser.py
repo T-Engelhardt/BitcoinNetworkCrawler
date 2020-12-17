@@ -41,7 +41,10 @@ class BitcoinEndcoder(json.JSONEncoder):
                 "hash": obj.cdir["hash"]
             })
         if isinstance(obj, services):
-            return (obj.getServicesNamesStr())  
+            return ({
+                "hex": obj.getServicesHex(),
+                "names": obj.getServicesNamesStr()
+            })
         if isinstance(obj, BitcoinHeader):
             return ({
                 "chain": obj.cdir["chain"],

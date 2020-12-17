@@ -54,24 +54,24 @@ class bitcoinConnection:
     def VersionMsg(self):
         tmp = version({
             "version": Bint(70015, 32, Endian.LITTLE),
-            "services": services([services.SERVICES_FLAG.NODE_WITNESS]),
+            "services": services([]),
             "timestamp": Bint(int(time()), 64, Endian.LITTLE),
             "addr_recv": (NetworkAddress({
                 "time": Bint(0, 32, Endian.BIG),
-                "services": services([services.SERVICES_FLAG.NODE_NETWORK, services.SERVICES_FLAG.NODE_WITNESS, services.SERVICES_FLAG.NODE_NETWORK_LIMITED]),
+                "services": services([]),
                 "IPv6/4": ipaddress.ip_address('::'),
                 "port": Bint(0, 16, Endian.BIG)
             })),
             "addr_from": (NetworkAddress({
                 "time": Bint(0, 32, Endian.BIG),
-                "services": services([services.SERVICES_FLAG.NODE_WITNESS,]),
+                "services": services([]),
                 "IPv6/4": ipaddress.ip_address('::'),
                 "port": Bint(0, 16, Endian.BIG)
             })),
             "nonce": Bint(random.getrandbits(64), 64, Endian.LITTLE),
             "user_agent": Vstr("/Satoshi:0.20.1/"),
             "start_height": Bint(0, 32, Endian.LITTLE),
-            "relay": int(1)
+            "relay": int(0)
         })
 
         return BitcoinHeader({
