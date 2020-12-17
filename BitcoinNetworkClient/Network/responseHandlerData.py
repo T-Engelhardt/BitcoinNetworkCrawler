@@ -1,8 +1,12 @@
-import time
-from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
-import BitcoinNetworkClient.Network.bitcoinConnection as bitcoinConnection
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
+    from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
+
 import threading
 import logging
+
 
 class responseHandlerData():
     

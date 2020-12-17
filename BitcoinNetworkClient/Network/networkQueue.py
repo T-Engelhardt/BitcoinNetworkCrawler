@@ -1,48 +1,49 @@
+from BitcoinNetworkClient.Network.networkThread import Client
+
 import logging
 import threading
 import queue
-from BitcoinNetworkClient.Network.networkThread import Client
+
 
 class NetworkQueue(threading.Thread):
 
     def __init__(self, threadsnr, queuelenght):
-        self.exitFlagLock = threading.Lock()
+        self.workQueue = queue.Queue(queuelenght)
         self.exitFlag = queue.Queue(1)
         self.exitFlag.put(int(1))
+
         self.threadList = []
         for i in range(threadsnr):
             self.threadList.append("Thread-"+str(i))
-        self.queueLock = threading.Lock()
-        self.workQueue = queue.Queue(queuelenght)
         self.threads = []
 
     def start(self):
         threadID = 1
 
         for tName in self.threadList:
-            thread = Client(threadID, self.workQueue, self.queueLock, self.exitFlag, self.exitFlagLock)
+            thread = Client(threadID, self, self.exitFlag)
             thread.start()
             self.threads.append(thread)
             threadID += 1
 
     def addToQueue(self, datalist):
         # Fill the queue
-        self.queueLock.acquire()
+        countAddedItems = 0
         for data in datalist:
             try:
-                self.workQueue.put(data, False)
+                self.workQueue.put(data, block=True, timeout=5.0)
+                countAddedItems += 1
             except:
-                logging.debug("Queue Full")
-        self.queueLock.release()
+                logging.debug("Queue Full but "+ str(countAddedItems) +" Item got added to Queue")
+                return
+        logging.debug("All "+ str(countAddedItems) +" Items got added to Queue")
 
     def getItemQueue(self):
-        self.queueLock.acquire()
-        if(self.workQueue.empty()):
-            logging.debug("Queue Empty")
-        else:
-            #TODO change block
-            return self.workQueue.get(block=False)
-        self.queueLock.release()
+        try:
+            return self.workQueue.get(block=True, timeout=5.0)
+        except Exception as e:
+            logging.debug(e)
+        return None
 
     def closeEmptyOrNot(self, flag):
         #if flag == True wait for list to be empty else close immediately

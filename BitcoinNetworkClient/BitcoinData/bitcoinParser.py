@@ -1,11 +1,13 @@
-#class to determine which bitcoinPayload is used form bitcoinData.Header
-import binascii
+#class to determine which bitcoinPayload is used for bitcoinData.Header
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinConst, BitcoinHeader
 from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, verack, version
 from BitcoinNetworkClient.util.data1 import Bchar, Bint, data1util
 from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
+
+import binascii
 import json
 import ipaddress
+
 
 class BitcoinEndcoder(json.JSONEncoder):
 

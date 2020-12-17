@@ -14,6 +14,7 @@ import json
 import random
 import logging
 
+
 def start():
     
     print("RUN")
@@ -22,23 +23,21 @@ def start():
                     format='(%(threadName)-10s) %(message)s',
                     )
 
-    #ipList = [["127.0.0.1", 1111, "regtest"]]
+    ipList = [["127.0.0.1", 1111, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
-    q = NetworkQueue(2, 1)
+    q = NetworkQueue(2, 10)
     q.start()
 
-    '''
     try:
         q.addToQueue(ipList)
     except:
         print("queue Full")
     
-    '''
     q.closeEmptyOrNot(True)
     q.waitForClients()
     
-
+    '''
     db = dbConnector()
     db.insertIP("testnet3", "127.0.0.3", 8312)
 
@@ -55,7 +54,7 @@ def start():
     
     print(q.getItemQueue())
     print(q.getItemQueue())
-
+    '''
 
     '''
     test1 = InventoryVector({

@@ -1,7 +1,8 @@
-from enum import Enum
-import hashlib
 from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
 from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, version
+
+import hashlib
+
 
 class BitcoinConst:
 

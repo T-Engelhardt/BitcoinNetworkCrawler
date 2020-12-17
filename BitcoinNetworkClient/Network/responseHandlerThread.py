@@ -1,15 +1,15 @@
-from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
+
+from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
+from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
+
 import json
 import threading
 import logging
-from time import sleep, time
-from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
-from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
-from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
-from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import ping, version
-import ipaddress
-import random
+
 
 class responseHandlerThread(threading.Thread):
 

@@ -1,9 +1,9 @@
+from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
 
 import binascii
 from enum import Enum
 import ipaddress
-import math 
-from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
+import math
 
 
 class Vint:

@@ -1,17 +1,18 @@
-import logging
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
+    import queue
+
 from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
-import random
-from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
-from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
-from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
-from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
-import ipaddress
+
+from time import sleep
+import logging
 import socket
 import threading
 import select
-from time import time, sleep
-import queue
+import logging
+
 
 class Client(threading.Thread):
 
@@ -20,16 +21,14 @@ class Client(threading.Thread):
     https://stackoverflow.com/questions/2719017/how-to-set-timeout-on-pythons-socket-recv-method
     '''
 
-    def __init__(self, threadID: int, queue: queue, queueLock: threading.Lock, exitFlag: queue, exitFlagLock: threading.Lock):
+    def __init__(self, threadID: int, NetQueue: NetworkQueue , exitFlag: queue):
         threading.Thread.__init__(self)
         self.name = ("Client Mother " + str(threadID))
         self.threadID = threadID
 
-        self.cQueue = queue
-        self.queueLock = queueLock
+        self.NetQueue = NetQueue
         self.exitFlag = exitFlag
-        self.exitFlagLock = exitFlagLock
-        self.size = 4096
+
         self.connected = False
         self.sendEvent = threading.Event()
         self.ThreadChilds = []
@@ -37,19 +36,18 @@ class Client(threading.Thread):
     def run(self):
         logging.debug("Starting")
 
-        self.exitFlagLock.acquire()
         flag = self.exitFlag.full()
-        self.exitFlagLock.release()
 
         while flag:
-            logging.debug('Waiting for lock -> NetworkQueue')
-            self.queueLock.acquire()
-            if not self.cQueue.empty():
-                logging.debug('Acquired lock -> NetworkQueue')
-                qdata = self.cQueue.get()
-                self.queueLock.release()
+            if not self.NetQueue.getQueueObject().empty():
+                
+                logging.debug('Found new Task')
+                qdata = self.NetQueue.getItemQueue()
+                if(qdata == None):
+                    #queue got empty between now and the if statement
+                    break
 
-                self.bitcoinConnection = bitcoinConnection(qdata, self.sendEvent)
+                self.bitcoinConnection =  bitcoinConnection(qdata, self.sendEvent)
 
                 self.open_socket()
 
@@ -59,20 +57,16 @@ class Client(threading.Thread):
                     for t in self.ThreadChilds:
                         t.start()
                 
-                #get exit flag
-                self.exitFlagLock.acquire()
+                #check exit flag
                 flag = self.exitFlag.full()
-                self.exitFlagLock.release()
             else:
-                self.queueLock.release()
                 #wait for new queue entrys
                 logging.debug('Waiting for new Tasks')
+                #wait a few seconds for a new task
                 sleep(5)
 
-                #get exit flag
-                self.exitFlagLock.acquire()
+                #check exit flag
                 flag = self.exitFlag.full()
-                self.exitFlagLock.release()
 
         self.waitForChilds()
         logging.debug("Exiting Client Thread")

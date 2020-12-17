@@ -4,6 +4,7 @@ from enum import Enum
 import binascii
 import struct
 
+
 class Endian(Enum):
     LITTLE = 1
     BIG = 2

@@ -1,7 +1,12 @@
-import logging
-from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
-import json
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
+
 import mysql.connector
+import logging
+import json
+
 
 class dbConnector:
 
@@ -99,10 +104,11 @@ class dbConnector:
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
+        forQueue = []
         for x in myresult:
-            tmp = [[x[0], x[1], chain]]
-            print(tmp)
-            queue.addToQueue(tmp)
+            tmp = [x[0], x[1], chain]
+            forQueue.append(tmp)
+        queue.addToQueue(forQueue)
         
         mycursor.close()
         

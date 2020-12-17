@@ -1,5 +1,5 @@
 from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
-from BitcoinNetworkClient.util.data1 import Bint, Endian, data1util
+from BitcoinNetworkClient.util.data1 import Bint, Endian
 
 
 class version:
