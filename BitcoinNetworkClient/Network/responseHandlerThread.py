@@ -48,10 +48,23 @@ class responseHandlerThread(threading.Thread):
             self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pongMsg(bytes(pingNonce)))
             self.cResponseHandlerData.getSendEvent().set()
 
+        if cmd == "version":
+            ip = self.cResponseHandlerData.getBitcoinConnection().getIP()
+            port = self.cResponseHandlerData.getBitcoinConnection().getPort()
+            chain = self.cResponseHandlerData.getBitcoinConnection().getChain()
+            self.cResponseHandlerData.getDbConnector().insertJson(chain, ip, port, json_object)
+
+        if cmd == "addr":
+            self.cResponseHandlerData.getDbConnector().insertJson(None, None, None, json_object)
+
         if cmd == "feefilter":
             #last message before inv data
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
-            self.cResponseHandlerData.getSendEvent().set()
+            #getaddr not already send
+            #second getadr in inv because < 70013 is not sending feefilter msg
+            if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
+                self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
+                self.cResponseHandlerData.addSendCmd("getaddr")
+                self.cResponseHandlerData.getSendEvent().set()
 
         if cmd == "inv":
             #remove unnwanted inv data
@@ -70,7 +83,12 @@ class responseHandlerThread(threading.Thread):
             }
             print(json.dumps(showInv, indent= 4))
 
-            #no need for more processing
+            #send getaddr if not already send
+            #second getadr because < 70013 is not sending feefilter msg
+            if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
+                self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
+                self.cResponseHandlerData.addSendCmd("getaddr")
+                self.cResponseHandlerData.getSendEvent().set()
             return
 
         #default

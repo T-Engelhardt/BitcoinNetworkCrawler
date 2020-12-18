@@ -36,37 +36,48 @@ class Client(threading.Thread):
     def run(self):
         logging.debug("Starting")
 
-        flag = self.exitFlag.full()
+        thisConnection = True
 
-        while flag:
-            if not self.NetQueue.getQueueObject().empty():
+        while self.exitFlag.full():
+
+            while thisConnection:
+                logging.debug("Open a new Connection")
+
+                #wait for old connection/(Send/Recv) Threads to close
+                self.waitForChilds()
                 
-                logging.debug('Found new Task')
                 qdata = self.NetQueue.getItemQueue()
                 if(qdata == None):
-                    #queue got empty between now and the if statement
+                    #wait for new queue entrys
+                    logging.debug('Waiting for new Tasks')
+                    #wait a few seconds for a new task
+                    sleep(5)
+                    #close thisConnection
                     break
 
+                #found new Task
+                logging.debug('Found new Task ' + str(qdata[0]) + " " + str(qdata[1]) + " " + str(qdata[2]))                
+
+                #open bitcoinConnection
                 self.bitcoinConnection =  bitcoinConnection(qdata, self.sendEvent)
 
                 self.open_socket()
 
                 if(self.connected):
+                    #append to all ever running threads
                     self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection, self.sendEvent))
                     self.ThreadChilds.append(ClientRecv(self.threadID, self.server, self.bitcoinConnection))
-                    for t in self.ThreadChilds:
+                    #only start the 2 new Threads
+                    newThreadChilds = [ self.ThreadChilds[-2],  self.ThreadChilds[-1]]
+                    for t in newThreadChilds:
                         t.start()
-                
-                #check exit flag
-                flag = self.exitFlag.full()
-            else:
-                #wait for new queue entrys
-                logging.debug('Waiting for new Tasks')
-                #wait a few seconds for a new task
-                sleep(5)
-
-                #check exit flag
-                flag = self.exitFlag.full()
+                    #send and recive open so start connection
+                    logging.debug("init Connection")
+                    self.bitcoinConnection.initConnection()
+                else:
+                    break
+            
+            logging.debug("Close this Connection")
 
         self.waitForChilds()
         logging.debug("Exiting Client Thread")
@@ -82,7 +93,6 @@ class Client(threading.Thread):
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             #self.server.settimeout(60.0)
             self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
-            self.server.setblocking(0)
             self.connected = True
             logging.debug("connected")
         except socket.error:
@@ -142,10 +152,16 @@ class ClientRecv(threading.Thread):
             data = b''
             loopTimeoutCounter = 0
 
+            try:
+                ready = select.select([self.server], [], [], 4.0)
+            except Exception as e:
+                logging.debug(e)
+                break
+
             for packetNr in range(50):
                 logging.debug("Packet "+ str(packetNr))
+                #self.server.setblocking(0)
 
-                ready = select.select([self.server], [], [], 2.0)
                 if ready[0]:
                 #https://stackoverflow.com/a/45251241
                     if(self.server.fileno() == -1):
@@ -154,9 +170,8 @@ class ClientRecv(threading.Thread):
                     try:
                         data += self.server.recv(4096)
                         loopTimeoutCounter = 0
-                    except:
-                        self.cBitcoinConnection.setKeepAlive(False)
-                        break
+                    except Exception as e:
+                        logging.debug(e)
                 else:
                     loopTimeoutCounter += 1
                     logging.debug("LoopTimeout " + str(loopTimeoutCounter))

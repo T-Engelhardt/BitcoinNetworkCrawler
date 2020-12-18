@@ -1,3 +1,4 @@
+from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
 import threading
 from BitcoinNetworkClient.db.dbConnector import dbConnector
 from time import sleep
@@ -23,39 +24,59 @@ def start():
                     format='(%(threadName)-10s) %(message)s',
                     )
 
-    ipList = [["127.0.0.1", 1111, "regtest"]]
+    #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
-    q = NetworkQueue(2, 10)
+    q = NetworkQueue(1, 10)
     q.start()
 
-    try:
-        q.addToQueue(ipList)
-    except:
-        print("queue Full")
+    #try:
+    #    q.addToQueue(ipList)
+    #except:
+    #    print("queue Full")
     
-    q.closeEmptyOrNot(True)
-    q.waitForClients()
+    #q.closeEmptyOrNot(True)
+    #q.waitForClients()
+    
+    #db = dbConnector()
+    #db.insertIP("testnet3", "127.0.0.3", 8312)
+
+    #with open("BitcoinNetworkClient/test/bin/addr1000.bin", "rb") as f:
+    #    read = bytes(f.read())
+
+    #json_object = json.dumps(BitcoinHeader(read), indent = 4, cls=BitcoinEndcoder)
+    #print(json_object)   
+    #db = dbConnector()
+    #db.deleteChain("main")
+    #db.deleteChain("regtest")
+    #db.deleteChain("testnet3")
+    #db.insertJson(None, None, None, json_object)
+    #db.insertIP("regtest", "127.0.0.1", 18331)
+    #db.insertIP("regtest", "127.0.0.1", 18332)
+    #db.insertIP("regtest", "127.0.0.1", 18333)
+    #db.insertIP("regtest", "127.0.0.1", 18334)
+    #db.insertIP("main", "34.80.224.42", 8333)
+
+
+    # tor prefix in ipv6 mapped onion "fd87:d87e:eb43::""
+
+    refill = refreshNetworkQueue("main", q)
+    refill.start()
+
+    #sleep(10)
+    #q.closeEmptyOrNot(True)
+    #q.waitForClients()
+    #refill.stop()
     
     '''
-    db = dbConnector()
-    db.insertIP("testnet3", "127.0.0.3", 8312)
-
-    with open("BitcoinNetworkClient/test/bin/realVersion.bin", "rb") as f:
-        read = bytes(f.read())
-
-    json_object = json.dumps(BitcoinHeader(read), indent = 4, cls=BitcoinEndcoder)
-    print(json_object)   
-    
-    db.insertJson("testnet3", "127.0.0.2", 8333, json_object)
-    db.fillQueue("testnet3", q)
+    #db.insertJson("testnet3", "127.0.0.2", 8333, json_object)
+    #db.fillQueue("testnet3", q)
 
     db.close()
     
-    print(q.getItemQueue())
-    print(q.getItemQueue())
+    #print(q.getItemQueue())
+    #print(q.getItemQueue())
     '''
-
     '''
     test1 = InventoryVector({
         "type": InventoryVector.INV_TYPE.MSG_TX,

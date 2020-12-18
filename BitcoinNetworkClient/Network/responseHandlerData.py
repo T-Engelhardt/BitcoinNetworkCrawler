@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
     from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
+    from BitcoinNetworkClient.db.dbConnector import dbConnector
 
 import threading
 import logging
@@ -10,7 +11,7 @@ import logging
 
 class responseHandlerData():
     
-    def __init__(self, bitcoinConnection:  bitcoinConnection, chain: str, sendEvent: threading.Event):
+    def __init__(self, bitcoinConnection:  bitcoinConnection, chain: str, sendEvent: threading.Event, db: dbConnector):
         self.recvCmdLock = threading.Lock()
         self.recvCmd = []
 
@@ -22,11 +23,15 @@ class responseHandlerData():
 
         self.chain = chain
         
+        self.db = db
         self.cBitcoinConnection = bitcoinConnection
         self.sendEvent = sendEvent
 
         self.noPayloadFound = b''
         self.noPayloadFoundLock = threading.Lock()
+
+    def getDbConnector(self) -> dbConnector:
+        return self.db
 
     def getBitcoinConnection(self) -> bitcoinConnection:
         return self.cBitcoinConnection

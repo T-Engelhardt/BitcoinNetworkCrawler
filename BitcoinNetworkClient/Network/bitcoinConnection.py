@@ -1,15 +1,18 @@
 from __future__ import annotations
+import logging
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import threading
 
 from BitcoinNetworkClient.Network.responseHandlerThread import responseHandlerThread
 from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
+from BitcoinNetworkClient.db.dbConnector import dbConnector
 
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
 from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
 from BitcoinNetworkClient.util.data1 import Bint, Endian
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
+
 
 from typing import List
 from time import time
@@ -24,11 +27,13 @@ class bitcoinConnection:
         self.port = qdata[1]
         self.chain = qdata[2]
 
+        logging.debug("Open DB connection")
+        self.db = dbConnector()
+        self.db.insertJson(self.chain, self.ip, self.port, None)
+
         self.sendEvent = sendEvent
         self.KeepAlive = True
-        self.cResponseHandlerData = responseHandlerData(self, self.chain, self.sendEvent)
-
-        self.initConnection()
+        self.cResponseHandlerData = responseHandlerData(self, self.chain, self.sendEvent, self.db)
 
     def initConnection(self):
         self.cResponseHandlerData.setNextMsg(self.VersionMsg())
@@ -48,6 +53,11 @@ class bitcoinConnection:
         self.KeepAlive = Flag
 
     def killSendThread(self):
+        #close db connection
+        logging.debug("Close DB connection")
+        self.db.close()
+        #close send thread
+        logging.debug("Stop send Thread")
         self.cResponseHandlerData.setNextMsg(None)
         self.cResponseHandlerData.getSendEvent().set()
 
@@ -56,6 +66,9 @@ class bitcoinConnection:
 
     def getPort(self):
         return self.port
+
+    def getChain(self):
+        return self.chain
 
     def VersionMsg(self):
         tmp = version({

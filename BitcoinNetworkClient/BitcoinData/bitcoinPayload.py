@@ -41,7 +41,12 @@ class version:
         self.cdir["user_agent"] = Vstr(Object[80::])
         offset = len(Vstr(Object[80::]))
         self.cdir["start_height"] = Bint(Object[80+offset:84+offset], 32, Endian.LITTLE)
-        self.cdir["relay"] = int.from_bytes(Object[84+offset:85+offset], 'little', signed=False)
+        #Extensions for version
+        if((85+offset) > len(Object)):
+            #not relay field found
+            self.cdir["relay"] = "X"
+        else:
+            self.cdir["relay"] = int.from_bytes(Object[84+offset:85+offset], 'little', signed=False)
 
     def DirToBytes(self):
         self.cbytes += bytes(self.cdir["version"])
@@ -171,9 +176,7 @@ class addr:
             self.addrArrayToBytes(Object)
 
     def bytesToDir(self, Object):
-        #TODO
         self.cdir["count"] = Vint(Object[0:9])
-        print(bytes(self.cdir["count"]))
         #cut Vint to get inventory
         cutBytes = Object[len(self.cdir["count"])::]
         foundSize = int(len(cutBytes) / 30)

@@ -17,6 +17,9 @@ class NetworkQueue(threading.Thread):
             self.threadList.append("Thread-"+str(i))
         self.threads = []
 
+        self.addLock = threading.Lock()
+        self.getLock = threading.Lock()
+
     def start(self):
         threadID = 1
 
@@ -26,23 +29,39 @@ class NetworkQueue(threading.Thread):
             self.threads.append(thread)
             threadID += 1
 
-    def addToQueue(self, datalist):
+    def addToQueue(self, datalist) -> int:
+        logging.debug("Waiting for lock -> addToQueue")
+        self.addLock.acquire()
+        logging.debug("Acquired lock -> addToQueue")
         # Fill the queue
         countAddedItems = 0
         for data in datalist:
             try:
-                self.workQueue.put(data, block=True, timeout=5.0)
+                self.workQueue.put(data, block=False)
                 countAddedItems += 1
             except:
                 logging.debug("Queue Full but "+ str(countAddedItems) +" Item got added to Queue")
-                return
+                self.addLock.release()
+                logging.debug("Released lock -> addToQueue")
+                return countAddedItems
         logging.debug("All "+ str(countAddedItems) +" Items got added to Queue")
+        self.addLock.release()
+        logging.debug("Released lock -> addToQueue")
+        return countAddedItems
 
     def getItemQueue(self):
+        logging.debug("Waiting for lock -> getItemQueue")
+        self.getLock.acquire()
+        logging.debug("Acquired lock -> getItemQueue")
         try:
-            return self.workQueue.get(block=True, timeout=5.0)
+            item = self.workQueue.get(block=True, timeout=5.0)
+            self.getLock.release()
+            logging.debug("Released lock -> getItemQueue")
+            return item
         except Exception as e:
             logging.debug(e)
+        self.getLock.release()
+        logging.debug("Released lock -> getItemQueue")
         return None
 
     def closeEmptyOrNot(self, flag):
@@ -60,5 +79,5 @@ class NetworkQueue(threading.Thread):
             t.join()
         logging.debug("Exiting Network Queue Thread")
 
-    def getQueueObject(self):
+    def getQueueObject(self) -> queue.Queue:
         return self.workQueue

@@ -14,6 +14,7 @@ class dbConnector:
         self.mydb = mysql.connector.connect(user='root', password='root', host='127.0.0.1', database='BitcoinNodes', auth_plugin='mysql_native_password')
 
     def insertIP(self, chain: str, IP: str, port: int):
+        #returns true if succesfully inserted or false when not
 
         mycursor = self.mydb.cursor()
 
@@ -27,6 +28,7 @@ class dbConnector:
             mycursor.execute(sql, val)
             self.mydb.commit()
             mycursor.close()
+            return True
         
         else:
             #check if port is also the same
@@ -41,6 +43,8 @@ class dbConnector:
                 mycursor.execute(sql, val)
                 self.mydb.commit()
                 mycursor.close()
+                return True
+        return False
 
     def insertJson(self, chain: str, IP: str, port: int, Object):
         '''
@@ -48,22 +52,24 @@ class dbConnector:
         '''
         mycursor = self.mydb.cursor()
 
-        #get id of db entry
-        sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE (`ip_address` LIKE '%"+ IP +"%') AND (`port` LIKE '%"+ str(port) +"%')"
-                
-        mycursor.execute(sql)
-        myresult = mycursor.fetchall()
-    
-        if(len(myresult) == 0):
-            raise Exception("Tried to Update IP entry in DB but no entry was found")
-        dbID = myresult[0][0]
+        if(chain != None and IP != None and port != None):
+            #get id of db entry
+            sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE (`ip_address` LIKE '%"+ IP +"%') AND (`port` LIKE '%"+ str(port) +"%')"
+                    
+            mycursor.execute(sql)
+            myresult = mycursor.fetchall()
+        
+            if(len(myresult) == 0):
+                raise Exception("Tried to Update IP entry in DB but no entry was found")
+            dbID = myresult[0][0]
 
         if(Object == None):
-            #add try to database
+            #add try to database and remove entry from queue tag
             #https://stackoverflow.com/a/3466
-            sql = "INSERT INTO "+ chain +" (id, last_try_time, last_try_success) VALUES (%s, NOW(), FALSE) \
+            sql = "INSERT INTO "+ chain +" (id, last_try_time, last_try_success, added_to_queue) VALUES (%s, NOW(), FALSE, FALSE) \
                 ON DUPLICATE KEY UPDATE \
                 last_try_time=VALUES(last_try_time), \
+                added_to_queue=VALUES(added_to_queue), \
                 last_try_success=VALUES(last_try_success);"
             #needs tuple for some reason
             val = (dbID,)
@@ -71,9 +77,18 @@ class dbConnector:
             self.mydb.commit()
             mycursor.close()
         else:
-            #add version to database
+            logging.debug("add Json to DB")
+
             data = json.loads(Object)
+
             if(data["command"] == "version"):
+
+                #count +1 in success counts
+                sql = "UPDATE "+ chain +" SET try_success_count = try_success_count + 1 WHERE id = "+ str(dbID)
+                mycursor.execute(sql)
+                self.mydb.commit()
+
+                logging.debug("version json")
 
                 protocolVersion = data["payload"]["version"]
                 payloadServices = data["payload"]["services"]
@@ -95,22 +110,56 @@ class dbConnector:
                 self.mydb.commit()
                 mycursor.close()
 
+            elif(data["command"] == "addr"):
+                logging.debug("addr json")
+                iChain = data["chain"]
+                countInsert = 0
+                for payload in data["payload"]["addr_list"]:
+                    success = self.insertIP(iChain, payload["IPv6/4"], payload["port"])
+                    if(success): countInsert += 1
+                logging.debug("inserted "+ str(countInsert) +" new IPs in DB")
+
     def fillQueue(self, chain: str, queue: NetworkQueue):
 
         mycursor = self.mydb.cursor()
 
         #get items that are not last tried in the set interval -> DAY HOUR:MIN:SEC or never tried -> NULL
-        sql = "SELECT ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '0 1:0:0' DAY_SECOND) OR `last_try_time` IS NULL"
+        sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '0 1:0:0' DAY_SECOND) OR `last_try_time` IS NULL AND `added_to_queue` is FALSE"
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
         forQueue = []
+        ItemIDs = []
         for x in myresult:
-            tmp = [x[0], x[1], chain]
+            tmp = [x[1], x[2], chain]
+            #list all ids of items
+            ItemIDs.append(x[0])
             forQueue.append(tmp)
-        queue.addToQueue(forQueue)
-        
+        if(len(forQueue) == 0):
+            logging.debug("No new items to add to Queue")
+        else:   
+            #mark added item to queue with added_to_queue in DB
+            #addToQueue returns number of added items
+            ItemAddedCount = queue.addToQueue(forQueue)
+            #only get items that where added to Queue
+            markedIDs = ItemIDs[:ItemAddedCount]
+            #create string with id from array -> remove [] and remove space between ids
+            prepareIDs = str(markedIDs)[1:-1].replace(', ',',')
+            logging.debug("markedIDs: "+ prepareIDs)
+            sql = "UPDATE "+ chain +" SET `added_to_queue`=1 WHERE FIND_IN_SET(`id`, '"+ prepareIDs +"')"
+            mycursor.execute(sql)
+            self.mydb.commit()
+
         mycursor.close()
         
     def close(self):
         self.mydb.close()
+
+    def deleteChain(self, chain: str):
+
+        mycursor = self.mydb.cursor()
+        sql = "DELETE FROM "+ chain +";"
+        mycursor.execute(sql)
+        sql = "ALTER TABLE "+ chain +" AUTO_INCREMENT = 1"
+        mycursor.execute(sql)
+        mycursor.close()
