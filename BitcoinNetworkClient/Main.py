@@ -27,7 +27,7 @@ def start():
     #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
-    q = NetworkQueue("regtest", 1, 4)
+    q = NetworkQueue("main", 1, 20)
     q.start()
 
     #try:

@@ -35,6 +35,7 @@ class bitcoinConnection:
         self.KeepAlive = True
 
         self.cResponseHandlerData = responseHandlerData()
+        self.responseThreads = []
 
     def initConnection(self):
         self.cResponseHandlerData.setNextMsg(self.VersionMsg())
@@ -42,6 +43,7 @@ class bitcoinConnection:
 
     def recvMsg(self, id: int, msg: bytes):
         thread = responseHandlerThread(id, self.cResponseHandlerData, msg, self)
+        self.responseThreads.append(thread)
         thread.start()
 
     def getSendMsg(self):
@@ -59,7 +61,14 @@ class bitcoinConnection:
     def setKeepAlive(self, Flag: bool):
         self.KeepAlive = Flag
 
+    def waitForChilds(self):
+        # Wait for all threads to complete
+        for t in self.responseThreads:
+            t.join()
+
     def closeDBConnection(self):
+        #wait for all repsonse operation before closing the db connection
+        self.waitForChilds()
         #close db connection
         self.db.close()
 
@@ -97,7 +106,7 @@ class bitcoinConnection:
             })),
             "nonce": Bint(random.getrandbits(64), 64, Endian.LITTLE),
             "user_agent": Vstr("/Satoshi:0.20.1/"),
-            "start_height": Bint(0, 32, Endian.LITTLE),
+            "start_height": Bint(1, 32, Endian.LITTLE),
             "relay": int(0)
         })
 
