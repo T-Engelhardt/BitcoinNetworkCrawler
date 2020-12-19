@@ -64,17 +64,19 @@ class Client(threading.Thread):
                 self.open_socket()
 
                 if(self.connected):
+                    #reset ThreadChilds all threads should be closed by now
+                    self.ThreadChilds = []
                     #append to all ever running threads
                     self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection, sendEvent))
                     self.ThreadChilds.append(ClientRecv(self.threadID, self.server, self.bitcoinConnection))
-                    #only start the 2 new Threads
-                    newThreadChilds = [ self.ThreadChilds[-2],  self.ThreadChilds[-1]]
-                    for t in newThreadChilds:
+                    #start threads
+                    for t in self.ThreadChilds:
                         t.start()
                     #send and recive open so start connection
                     logging.debug("init Connection")
                     self.bitcoinConnection.initConnection()
                 else:
+                    self.bitcoinConnection.closeDBConnection()
                     break
             
             logging.debug("Close this Connection")

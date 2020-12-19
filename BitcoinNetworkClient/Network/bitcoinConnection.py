@@ -52,10 +52,13 @@ class bitcoinConnection:
     def setKeepAlive(self, Flag: bool):
         self.KeepAlive = Flag
 
-    def killSendThread(self):
+    def closeDBConnection(self):
         #close db connection
         logging.debug("Close DB connection")
         self.db.close()
+
+    def killSendThread(self):
+        self.closeDBConnection()
         #close send thread
         logging.debug("Stop send Thread")
         self.cResponseHandlerData.setNextMsg(None)
