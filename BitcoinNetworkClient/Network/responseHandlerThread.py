@@ -56,6 +56,10 @@ class responseHandlerThread(threading.Thread):
 
         if cmd == "addr":
             self.cResponseHandlerData.getDbConnector().insertJson(None, None, None, json_object)
+            #close connection
+            self.cResponseHandlerData.getBitcoinConnection().setKeepAlive(False)
+            #dont print addr
+            return
 
         if cmd == "feefilter":
             #last message before inv data

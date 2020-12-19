@@ -30,7 +30,6 @@ class Client(threading.Thread):
         self.exitFlag = exitFlag
 
         self.connected = False
-        self.sendEvent = threading.Event()
         self.ThreadChilds = []
 
     def run(self):
@@ -59,13 +58,14 @@ class Client(threading.Thread):
                 logging.debug('Found new Task ' + str(qdata[0]) + " " + str(qdata[1]) + " " + str(qdata[2]))                
 
                 #open bitcoinConnection
-                self.bitcoinConnection =  bitcoinConnection(qdata, self.sendEvent)
+                sendEvent = threading.Event()
+                self.bitcoinConnection =  bitcoinConnection(qdata, sendEvent)
 
                 self.open_socket()
 
                 if(self.connected):
                     #append to all ever running threads
-                    self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection, self.sendEvent))
+                    self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection, sendEvent))
                     self.ThreadChilds.append(ClientRecv(self.threadID, self.server, self.bitcoinConnection))
                     #only start the 2 new Threads
                     newThreadChilds = [ self.ThreadChilds[-2],  self.ThreadChilds[-1]]
@@ -91,7 +91,7 @@ class Client(threading.Thread):
         """ Connect to the server """
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #self.server.settimeout(60.0)
+            self.server.settimeout(3.0)
             self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
             self.connected = True
             logging.debug("connected")
@@ -123,6 +123,7 @@ class ClientSent(threading.Thread):
                     self.server.send(bytes(senddata))
                 except Exception as e:
                     logging.debug(e)
+                    break
             else:
                 #type NONE found so close Thread
                 break
@@ -152,30 +153,21 @@ class ClientRecv(threading.Thread):
             data = b''
             loopTimeoutCounter = 0
 
-            try:
-                ready = select.select([self.server], [], [], 4.0)
-            except Exception as e:
-                logging.debug(e)
-                break
-
             for packetNr in range(50):
                 logging.debug("Packet "+ str(packetNr))
-                #self.server.setblocking(0)
 
-                if ready[0]:
                 #https://stackoverflow.com/a/45251241
-                    if(self.server.fileno() == -1):
-                        self.cBitcoinConnection.setKeepAlive(False)
-                        break
-                    try:
-                        data += self.server.recv(4096)
-                        loopTimeoutCounter = 0
-                    except Exception as e:
-                        logging.debug(e)
-                else:
+                if(self.server.fileno() == -1):
+                    self.cBitcoinConnection.setKeepAlive(False)
+                    break
+                try:
+                    data += self.server.recv(4096)
+                    loopTimeoutCounter = 0
+                except Exception as e:
+                    logging.debug(e)
                     loopTimeoutCounter += 1
                     logging.debug("LoopTimeout " + str(loopTimeoutCounter))
-                    #final timeout
+                
                 if(loopTimeoutCounter > 2):
                     break
 
