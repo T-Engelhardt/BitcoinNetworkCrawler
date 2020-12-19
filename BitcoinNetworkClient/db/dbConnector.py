@@ -1,17 +1,32 @@
 from __future__ import annotations
+from time import sleep
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
+    from mysql.connector import pooling
 
-import mysql.connector
 import logging
 import json
 
 
 class dbConnector:
 
-    def __init__(self):
-        self.mydb = mysql.connector.connect(user='root', password='root', host='127.0.0.1', database='BitcoinNodes', auth_plugin='mysql_native_password')
+    def __init__(self, pool: pooling.MySQLConnectionPool):
+
+        self.openDBConnection(pool)
+
+        while not self.mydb.is_connected():
+            logging.debug("Got NO DB Connection ... Trying again")
+            sleep(1)
+            self.openDBConnection(pool)
+
+    def openDBConnection(self, pool: pooling.MySQLConnectionPool):
+        try:
+            self.mydb = pool.get_connection()
+            logging.debug("Got DB Connection")
+        except Exception as e:
+            logging.debug(e)
 
     def insertIP(self, chain: str, IP: str, port: int):
         #returns true if succesfully inserted or false when not
@@ -154,6 +169,7 @@ class dbConnector:
         
     def close(self):
         self.mydb.close()
+        logging.debug("Return DB Connection")
 
     def deleteChain(self, chain: str):
 

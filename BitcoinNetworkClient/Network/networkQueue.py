@@ -1,3 +1,5 @@
+from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
+from BitcoinNetworkClient.db.dbPool import dbPool
 from BitcoinNetworkClient.Network.networkThread import Client
 
 import logging
@@ -7,7 +9,7 @@ import queue
 
 class NetworkQueue(threading.Thread):
 
-    def __init__(self, threadsnr, queuelenght):
+    def __init__(self, chain, threadsnr, queuelenght):
         self.workQueue = queue.Queue(queuelenght)
         self.exitFlag = queue.Queue(1)
         self.exitFlag.put(int(1))
@@ -20,14 +22,22 @@ class NetworkQueue(threading.Thread):
         self.addLock = threading.Lock()
         self.getLock = threading.Lock()
 
+        #plus one for refresh thread
+        self.pool = dbPool(threadsnr+1)
+
+        refreshNetworkQueue(chain, self, self.pool.getPool()).start()
+
     def start(self):
         threadID = 1
 
         for tName in self.threadList:
-            thread = Client(threadID, self, self.exitFlag)
+            thread = Client(threadID, self, self.exitFlag, self.getPool())
             thread.start()
             self.threads.append(thread)
             threadID += 1
+
+    def getPool(self):
+        return self.pool.getPool()
 
     def addToQueue(self, datalist) -> int:
         logging.debug("Waiting for lock -> addToQueue")

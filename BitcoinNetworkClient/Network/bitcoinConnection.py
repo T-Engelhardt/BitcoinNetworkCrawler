@@ -3,6 +3,7 @@ import logging
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import threading
+    from mysql.connector import pooling
 
 from BitcoinNetworkClient.Network.responseHandlerThread import responseHandlerThread
 from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
@@ -22,29 +23,35 @@ import random
 
 class bitcoinConnection:
 
-    def __init__(self, qdata: list, sendEvent: threading.Event):
+    def __init__(self, qdata: list, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
         self.ip = qdata[0]
         self.port = qdata[1]
         self.chain = qdata[2]
 
-        logging.debug("Open DB connection")
-        self.db = dbConnector()
+        self.db = dbConnector(pool)
         self.db.insertJson(self.chain, self.ip, self.port, None)
 
         self.sendEvent = sendEvent
         self.KeepAlive = True
-        self.cResponseHandlerData = responseHandlerData(self, self.chain, self.sendEvent, self.db)
+
+        self.cResponseHandlerData = responseHandlerData()
 
     def initConnection(self):
         self.cResponseHandlerData.setNextMsg(self.VersionMsg())
         self.sendEvent.set()
 
     def recvMsg(self, id: int, msg: bytes):
-        thread = responseHandlerThread(id, self.cResponseHandlerData, msg)
+        thread = responseHandlerThread(id, self.cResponseHandlerData, msg, self)
         thread.start()
 
     def getSendMsg(self):
         return self.cResponseHandlerData.getNextMsg()
+
+    def getSendEvent(self) -> threading.Event:
+        return self.sendEvent
+
+    def getDbConnector(self) -> dbConnector:
+        return self.db
 
     def getKeepAlive(self):
         return self.KeepAlive
@@ -54,23 +61,21 @@ class bitcoinConnection:
 
     def closeDBConnection(self):
         #close db connection
-        logging.debug("Close DB connection")
         self.db.close()
 
     def killSendThread(self):
-        self.closeDBConnection()
         #close send thread
         logging.debug("Stop send Thread")
         self.cResponseHandlerData.setNextMsg(None)
-        self.cResponseHandlerData.getSendEvent().set()
+        self.sendEvent.set()
 
-    def getIP(self):
+    def getIP(self) -> str:
         return self.ip
 
-    def getPort(self):
+    def getPort(self) -> int:
         return self.port
 
-    def getChain(self):
+    def getChain(self) -> str:
         return self.chain
 
     def VersionMsg(self):

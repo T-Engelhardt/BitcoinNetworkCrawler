@@ -1,9 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
     from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
-    from BitcoinNetworkClient.db.dbConnector import dbConnector
 
 import threading
 import logging
@@ -11,7 +9,7 @@ import logging
 
 class responseHandlerData():
     
-    def __init__(self, bitcoinConnection:  bitcoinConnection, chain: str, sendEvent: threading.Event, db: dbConnector):
+    def __init__(self):
         self.recvCmdLock = threading.Lock()
         self.recvCmd = []
 
@@ -21,52 +19,34 @@ class responseHandlerData():
         self.sendNextMsgLock = threading.Lock()
         self.sendNextMsg = None
 
-        self.chain = chain
-        
-        self.db = db
-        self.cBitcoinConnection = bitcoinConnection
-        self.sendEvent = sendEvent
-
-        self.noPayloadFound = b''
-        self.noPayloadFoundLock = threading.Lock()
-
-    def getDbConnector(self) -> dbConnector:
-        return self.db
-
-    def getBitcoinConnection(self) -> bitcoinConnection:
-        return self.cBitcoinConnection
-
-    def getSendEvent(self) -> threading.Event:
-        return self.sendEvent
-
-    def getChain(self) -> str:
-        return self.chain
-
     #SEND CMD
     def addSendCmd(self, Object: str):
-        logging.debug('Write: Waiting for lock -> cmd[]')
+        logging.debug('Write: Waiting for lock -> sendCMD')
         self.sendCmdLock.acquire()
         try:
-            logging.debug('Write: Acquired lock -> cmd[]')
+            logging.debug('Write: Acquired lock -> sendCMD')
             self.sendCmd.append(Object)
         finally:
             self.sendCmdLock.release()
+            logging.debug('Write: Release for lock -> sendCMD')
     
     def getSendCmd(self):
-        logging.debug('Read: Waiting for lock -> cmd[]')
+        logging.debug('Read: Waiting for lock -> sendCMD')
         self.sendCmdLock.acquire()
         try:
-            logging.debug('Read: Acquired lock -> cmd[]')
-            return self.sendCmd
+            logging.debug('Read: Acquired lock -> sendCMD')
+            result = self.sendCmd
         finally:
             self.sendCmdLock.release()
+            logging.debug('Read: Release lock -> sendCMD')
+        return result
 
     #RECIVE CMD
     def addRecvCmd(self, Object: str):
-        logging.debug('Write: Waiting for lock -> recvCmd')
+        logging.debug('Write: Waiting for lock -> recvCMD')
         self.recvCmdLock.acquire()
         try:
-            logging.debug('Write: Acquired lock -> recvCmd')
+            logging.debug('Write: Acquired lock -> recvCMD')
             #Reset recvCmd
             if(Object == "RECV_CMD_RESET"):
                 self.recvCmd = []
@@ -74,15 +54,18 @@ class responseHandlerData():
                 self.recvCmd.append(Object)
         finally:
             self.recvCmdLock.release()
+            logging.debug('Write: Release lock -> recvCMD')
     
     def getRecvCmd(self):
-        logging.debug('Read: Waiting for lock -> recvCmd')
+        logging.debug('Read: Waiting for lock -> recvCMD')
         self.recvCmdLock.acquire()
         try:
-            logging.debug('Read: Acquired lock -> recvCmd')
-            return self.recvCmd
+            logging.debug('Read: Acquired lock -> recvCMD')
+            result = self.recvCmd
         finally:
             self.recvCmdLock.release()
+            logging.debug('Read: Release lock -> recvCMD')
+        return result
 
     #Next SEND MSG
     def setNextMsg(self, msg: BitcoinHeader):
@@ -93,12 +76,15 @@ class responseHandlerData():
             self.sendNextMsg = msg
         finally:
             self.sendNextMsgLock.release()
+            logging.debug('Write: Release for lock -> sendNextMsg')
 
     def getNextMsg(self):
         logging.debug('Read: Waiting for lock -> sendNextMsg')
         self.sendNextMsgLock.acquire()
         try:
             logging.debug('Read: Acquired lock -> sendNextMsg')
-            return self.sendNextMsg
+            result = self.sendNextMsg
         finally:
             self.sendNextMsgLock.release()
+            logging.debug('Read: Release lock -> sendNextMsg')
+        return result

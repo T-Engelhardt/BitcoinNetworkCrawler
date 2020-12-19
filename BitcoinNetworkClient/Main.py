@@ -27,7 +27,7 @@ def start():
     #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
-    q = NetworkQueue(1, 20)
+    q = NetworkQueue("regtest", 1, 4)
     q.start()
 
     #try:
@@ -59,9 +59,6 @@ def start():
 
 
     # tor prefix in ipv6 mapped onion "fd87:d87e:eb43::""
-
-    refill = refreshNetworkQueue("main", q)
-    refill.start()
 
     #sleep(10)
     #q.closeEmptyOrNot(True)

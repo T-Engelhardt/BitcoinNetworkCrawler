@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
+    from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
 
 from BitcoinNetworkClient.BitcoinData.bitcoinParser import BitcoinEndcoder, cutBitcoinMsg
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
@@ -13,15 +14,16 @@ import logging
 
 class responseHandlerThread(threading.Thread):
 
-    def __init__(self, threadID: int, responseHandlerData: responseHandlerData, recvMsg: bytes):
+    def __init__(self, threadID: int, responseHandlerData: responseHandlerData, recvMsg: bytes , bitcoinConnection: bitcoinConnection):
         threading.Thread.__init__(self)
         self.name = ("responseHandlerThread " + str(threadID))
         self.cResponseHandlerData = responseHandlerData
+        self.cBitcoinConnection = bitcoinConnection
         self.recvMsg = recvMsg
 
     def run(self):
         #cut if more then one message
-        cutMsg = cutBitcoinMsg(self.recvMsg, self.cResponseHandlerData.getChain())
+        cutMsg = cutBitcoinMsg(self.recvMsg, self.cBitcoinConnection.getChain())
         cutMsgArray = cutMsg.getArrayMsg()
         for data in cutMsgArray:
             try:
@@ -40,24 +42,24 @@ class responseHandlerThread(threading.Thread):
         json_object = json.dumps(Header, indent = 4, cls=BitcoinEndcoder)
         
         if cmd == "verack":
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().verackMsg())
-            self.cResponseHandlerData.getSendEvent().set()
+            self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.verackMsg())
+            self.cBitcoinConnection.getSendEvent().set()
         
         if cmd == "ping":
             pingNonce = Header.getDir()["payload"]
-            self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().pongMsg(bytes(pingNonce)))
-            self.cResponseHandlerData.getSendEvent().set()
+            self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.pongMsg(bytes(pingNonce)))
+            self.cBitcoinConnection.getSendEvent().set()
 
         if cmd == "version":
-            ip = self.cResponseHandlerData.getBitcoinConnection().getIP()
-            port = self.cResponseHandlerData.getBitcoinConnection().getPort()
-            chain = self.cResponseHandlerData.getBitcoinConnection().getChain()
-            self.cResponseHandlerData.getDbConnector().insertJson(chain, ip, port, json_object)
+            ip = self.cBitcoinConnection.getIP()
+            port = self.cBitcoinConnection.getPort()
+            chain = self.cBitcoinConnection.getChain()
+            self.cBitcoinConnection.getDbConnector().insertJson(chain, ip, port, json_object)
 
         if cmd == "addr":
-            self.cResponseHandlerData.getDbConnector().insertJson(None, None, None, json_object)
+            self.cBitcoinConnection.getDbConnector().insertJson(None, None, None, json_object)
             #close connection
-            self.cResponseHandlerData.getBitcoinConnection().setKeepAlive(False)
+            self.cBitcoinConnection.setKeepAlive(False)
             #dont print addr
             return
 
@@ -66,9 +68,9 @@ class responseHandlerThread(threading.Thread):
             #getaddr not already send
             #second getadr in inv because < 70013 is not sending feefilter msg
             if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
-                self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
+                self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.getaddrMsg())
                 self.cResponseHandlerData.addSendCmd("getaddr")
-                self.cResponseHandlerData.getSendEvent().set()
+                self.cBitcoinConnection.getSendEvent().set()
 
         if cmd == "inv":
             #remove unnwanted inv data
@@ -90,9 +92,9 @@ class responseHandlerThread(threading.Thread):
             #send getaddr if not already send
             #second getadr because < 70013 is not sending feefilter msg
             if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
-                self.cResponseHandlerData.setNextMsg(self.cResponseHandlerData.getBitcoinConnection().getaddrMsg())
+                self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.getaddrMsg())
                 self.cResponseHandlerData.addSendCmd("getaddr")
-                self.cResponseHandlerData.getSendEvent().set()
+                self.cBitcoinConnection.getSendEvent().set()
             return
 
         #default
