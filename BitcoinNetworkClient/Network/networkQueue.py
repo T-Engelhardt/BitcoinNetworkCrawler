@@ -22,8 +22,8 @@ class NetworkQueue(threading.Thread):
         self.addLock = threading.Lock()
         self.getLock = threading.Lock()
 
-        #plus one for refresh thread
-        self.pool = dbPool(threadsnr+1)
+        #number of clients plus 2 for puffer(dbRefresh)
+        self.pool = dbPool(threadsnr+2)
 
         refreshNetworkQueue(chain, self, self.pool.getPool()).start()
 

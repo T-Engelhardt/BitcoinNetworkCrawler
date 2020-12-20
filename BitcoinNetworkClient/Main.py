@@ -27,7 +27,12 @@ def start():
     #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
     #ipList2 = [["127.0.0.1", 1112]]
-    q = NetworkQueue("main", 1, 20)
+    #MYSQL
+    #
+    #SELECT user_agent,COUNT(user_agent) FROM main GROUP BY user_agent ORDER BY COUNT(user_agent) desc ;
+    #SELECT COUNT(*) FROM main
+    #
+    q = NetworkQueue("main", 4, 100)
     q.start()
 
     #try:

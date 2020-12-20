@@ -139,7 +139,7 @@ class dbConnector:
         mycursor = self.mydb.cursor()
 
         #get items that are not last tried in the set interval -> DAY HOUR:MIN:SEC or never tried -> NULL
-        sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '1 0:0:0' DAY_SECOND) OR `last_try_time` IS NULL AND `added_to_queue` is FALSE"
+        sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '2 0:0:0' DAY_SECOND) OR `last_try_time` IS NULL AND `added_to_queue` is FALSE"
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
@@ -174,6 +174,13 @@ class dbConnector:
         except Exception as e:
             logging.debug(e)
         
+    def clearQueueTag(self, chain: str):
+
+        mycursor = self.mydb.cursor()
+        sql = "UPDATE "+ chain +" SET added_to_queue = 0;"
+        mycursor.execute(sql)
+        logging.debug("Cleared Queue tag in DB")
+        mycursor.close()
 
     def deleteChain(self, chain: str):
 
