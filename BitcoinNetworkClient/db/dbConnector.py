@@ -81,11 +81,10 @@ class dbConnector:
         if(Object == None):
             #add try to database and remove entry from queue tag
             #https://stackoverflow.com/a/3466
-            sql = "INSERT INTO "+ chain +" (id, last_try_time, last_try_success, added_to_queue) VALUES (%s, NOW(), FALSE, FALSE) \
+            sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue) VALUES (%s, NOW(), FALSE) \
                 ON DUPLICATE KEY UPDATE \
                 last_try_time=VALUES(last_try_time), \
-                added_to_queue=VALUES(added_to_queue), \
-                last_try_success=VALUES(last_try_success);"
+                added_to_queue=VALUES(added_to_queue);"
             #needs tuple for some reason
             val = (dbID,)
             mycursor.execute(sql, val)
@@ -112,14 +111,14 @@ class dbConnector:
                 payloadStartHeight = data["payload"]["start_height"]
 
                 #https://stackoverflow.com/a/3466
-                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_time, last_try_success) VALUES (%s, %s, %s, %s, %s, NOW(), TRUE) \
+                #dont insert last_try_time because at the start of BitcoinConnection already set last_try_time
+                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_success_time) VALUES (%s, %s, %s, %s, %s, NOW()) \
                     ON DUPLICATE KEY UPDATE \
                     protocolVersion=VALUES(protocolVersion), \
                     servicesHex=VALUES(servicesHex), \
                     user_agent=VALUES(user_agent), \
                     start_height=VALUES(start_height), \
-                    last_try_time=VALUES(last_try_time), \
-                    last_try_success=VALUES(last_try_success);"
+                    last_try_success=VALUES(last_try_success_time);"
                 val = (dbID, protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight)
                 mycursor.execute(sql, val)
                 self.mydb.commit()
