@@ -1,11 +1,12 @@
 from __future__ import annotations
-from time import sleep
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
     from mysql.connector import pooling
 
+from BitcoinNetworkClient.db.geoip.dbGeoIp import dbGeoIp
+from time import sleep
 import logging
 import json
 
@@ -97,10 +98,12 @@ class dbConnector:
 
             if(data["command"] == "version"):
 
+                '''
                 #count +1 in success counts
                 sql = "UPDATE "+ chain +" SET try_success_count = try_success_count + 1 WHERE id = "+ str(dbID)
                 mycursor.execute(sql)
                 self.mydb.commit()
+                '''
 
                 logging.debug("version json")
 
@@ -112,17 +115,22 @@ class dbConnector:
 
                 #https://stackoverflow.com/a/3466
                 #dont insert last_try_time because at the start of BitcoinConnection already set last_try_time
-                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_success_time) VALUES (%s, %s, %s, %s, %s, NOW()) \
+                #increment try_success_count by one -> in Values dummy 0 because try_success_count gets incremented but VALUES need to have the same number of columns
+                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_success_time, try_success_count) VALUES (%s, %s, %s, %s, %s, NOW(), 0) \
                     ON DUPLICATE KEY UPDATE \
                     protocolVersion=VALUES(protocolVersion), \
                     servicesHex=VALUES(servicesHex), \
                     user_agent=VALUES(user_agent), \
                     start_height=VALUES(start_height), \
-                    last_try_success=VALUES(last_try_success_time);"
+                    last_try_success_time=VALUES(last_try_success_time), \
+                    try_success_count = try_success_count + 1;"
                 val = (dbID, protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight)
                 mycursor.execute(sql, val)
                 self.mydb.commit()
                 mycursor.close()
+
+                #insert geo DATA
+                dbGeoIp(chain, IP, dbID, self.mydb).insertGeoData()
 
             elif(data["command"] == "addr"):
                 logging.debug("addr json")
@@ -178,9 +186,11 @@ class dbConnector:
         mycursor = self.mydb.cursor()
         sql = "UPDATE "+ chain +" SET added_to_queue = 0;"
         mycursor.execute(sql)
+        self.mydb.commit()
         logging.debug("Cleared Queue tag in DB")
         mycursor.close()
 
+    '''
     def deleteChain(self, chain: str):
 
         mycursor = self.mydb.cursor()
@@ -188,4 +198,6 @@ class dbConnector:
         mycursor.execute(sql)
         sql = "ALTER TABLE "+ chain +" AUTO_INCREMENT = 1"
         mycursor.execute(sql)
+        self.mydb.commit()
         mycursor.close()
+    '''

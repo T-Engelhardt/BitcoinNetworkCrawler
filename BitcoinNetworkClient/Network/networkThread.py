@@ -97,7 +97,7 @@ class Client(threading.Thread):
         #opens socket returns true if succesfull
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.settimeout(3.0)
+            self.server.settimeout(2.0)
             self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
             logging.debug("connected")
             return True
