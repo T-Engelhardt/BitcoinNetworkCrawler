@@ -80,19 +80,12 @@ class dbGeoIp:
             val1 = (continent, country, city, latitude, longitude, asnNr, asnName)
             val2 = (self.dbID,)
 
-            try:
-                mycursor.execute(sql1, val1)
-            except Exception as e:
-                logging.debug(e)
-            try:
-                mycursor.execute(sql2, val2)
-            except Exception as e:
-                logging.debug(e)
 
-            try:
-                self.mydb.commit()
-            except Exception as e:
-                logging.debug(e)
+            mycursor.execute(sql1, val1)
+            mycursor.execute(sql2, val2)
+
+            self.mydb.commit()
             mycursor.close()
+            
             logging.debug("Inserted Geo Data into "+ str(self.dbID))
             return
