@@ -60,6 +60,7 @@ class dbConnector:
                 self.mydb.commit()
                 mycursor.close()
                 return True
+        mycursor.close()
         return False
 
     def insertJson(self, chain: str, IP: str, port: int, Object):
@@ -97,7 +98,7 @@ class dbConnector:
             val = (dbID, minCount)
             mycursor.execute(sql, val)
             self.mydb.commit()
-            mycursor.close()
+
         else:
             logging.debug("add Json to DB")
 
@@ -134,7 +135,6 @@ class dbConnector:
                 val = (dbID, protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight)
                 mycursor.execute(sql, val)
                 self.mydb.commit()
-                mycursor.close()
 
                 #insert geo DATA
                 dbGeoIp(chain, IP, dbID, self.mydb).insertGeoData()
@@ -148,6 +148,12 @@ class dbConnector:
                     if(success): countInsert += 1
                 logging.debug("inserted "+ str(countInsert) +" new IPs in DB")
 
+        #close all unclosed cursors
+        try:
+            mycursor.close()
+        except Exception as e:
+            logging.debug(e)
+
     def fillQueue(self, chain: str, queue: NetworkQueue):
 
         mycursor = self.mydb.cursor()
@@ -159,7 +165,7 @@ class dbConnector:
         #LIMITS TO 100 // prio NULL value if not null sort by last_try_time ASC else sort ASC by id
         sql = "SELECT id, ip_address, port \
                 FROM "+ chain +" \
-                WHERE try_count = ( SELECT MIN(queue_prio) FROM main) ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT 200"
+                WHERE try_count = ( SELECT MIN(queue_prio) FROM main) AND `added_to_queue` is FALSE ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT 200"
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
@@ -185,7 +191,11 @@ class dbConnector:
             mycursor.execute(sql)
             self.mydb.commit()
 
-        mycursor.close()
+        #close all unclosed cursors
+        try:
+            mycursor.close()
+        except Exception as e:
+            logging.debug(e)
         
     def close(self):
         try:

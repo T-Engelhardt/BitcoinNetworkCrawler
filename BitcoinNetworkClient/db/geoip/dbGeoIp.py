@@ -29,6 +29,7 @@ class dbGeoIp:
         
         if(len(myresult) != 0):
             logging.debug("GEODATA already found for this entry in the Database")
+            mycursor.close()
             return
         else:
             #default -> Value cant be NONE
