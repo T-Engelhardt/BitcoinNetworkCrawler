@@ -140,6 +140,8 @@ class dbConnector:
                 dbGeoIp(chain, IP, dbID, self.mydb).insertGeoData()
 
             elif(data["command"] == "addr"):
+                #we dont need the cursor
+                mycursor.close()
                 logging.debug("addr json")
                 iChain = data["chain"]
                 countInsert = 0

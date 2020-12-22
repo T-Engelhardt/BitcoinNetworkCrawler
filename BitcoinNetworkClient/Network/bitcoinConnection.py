@@ -23,10 +23,12 @@ import random
 
 class bitcoinConnection:
 
-    def __init__(self, qdata: list, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
+    def __init__(self, motherThreadID: int, qdata: list, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
         self.ip = qdata[0]
         self.port = qdata[1]
         self.chain = qdata[2]
+
+        self.motherThreadID = motherThreadID
 
         self.db = dbConnector(pool)
         self.db.insertJson(self.chain, self.ip, self.port, None)
@@ -34,7 +36,7 @@ class bitcoinConnection:
         self.sendEvent = sendEvent
         self.KeepAlive = True
 
-        self.cResponseHandlerData = responseHandlerData()
+        self.cResponseHandlerData = responseHandlerData(self.motherThreadID)
         self.responseThreads = []
 
     def initConnection(self):

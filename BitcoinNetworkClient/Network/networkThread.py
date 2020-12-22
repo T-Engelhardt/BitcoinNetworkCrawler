@@ -61,7 +61,7 @@ class Client(threading.Thread):
 
                 #open bitcoinConnection
                 sendEvent = threading.Event()
-                self.bitcoinConnection =  bitcoinConnection(qdata, sendEvent, self.pool)
+                self.bitcoinConnection =  bitcoinConnection(self.threadID, qdata, sendEvent, self.pool)
 
                 #returns true if succesfull
                 connected = self.open_socket()

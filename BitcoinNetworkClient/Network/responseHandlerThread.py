@@ -16,7 +16,7 @@ class responseHandlerThread(threading.Thread):
 
     def __init__(self, threadID: int, responseHandlerData: responseHandlerData, recvMsg: bytes , bitcoinConnection: bitcoinConnection):
         threading.Thread.__init__(self)
-        self.name = ("responseHandlerThread " + str(threadID))
+        self.name = ("Client "+ str(responseHandlerData.getMotherTreadID()) +" | responseHandlerThread " + str(threadID))
         self.cResponseHandlerData = responseHandlerData
         self.cBitcoinConnection = bitcoinConnection
         self.recvMsg = recvMsg

@@ -9,7 +9,7 @@ import logging
 
 class responseHandlerData():
     
-    def __init__(self):
+    def __init__(self, motherTreadID: int):
         self.recvCmdLock = threading.Lock()
         self.recvCmd = []
 
@@ -18,6 +18,11 @@ class responseHandlerData():
 
         self.sendNextMsgLock = threading.Lock()
         self.sendNextMsg = None
+
+        self.motherTreadID = motherTreadID
+
+    def getMotherTreadID(self):
+        return self.motherTreadID
 
     #SEND CMD
     def addSendCmd(self, Object: str):
