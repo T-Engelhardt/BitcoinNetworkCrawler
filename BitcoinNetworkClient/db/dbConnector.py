@@ -29,39 +29,41 @@ class dbConnector:
         except Exception as e:
             logging.debug(e)
 
-    def insertIP(self, chain: str, IP: str, port: int):
-        #returns true if succesfully inserted or false when not
+    def insertIP(self, data):
+        #chain, ip, port -> Array/data
 
         mycursor = self.mydb.cursor()
 
-        sql = "SELECT ip_address, port FROM "+ chain +" WHERE (`ip_address` LIKE '%"+ IP +"%')"
-        mycursor.execute(sql)
-        myresult = mycursor.fetchall()
+        for info in data:
 
-        if(len(myresult) == 0):
-            sql = "INSERT INTO "+ chain +" (ip_address, port) VALUES (%s, %s)"
+            chain = info[0]
+            IP = info[1]
+            port = info[2]
+
+            #replaced with unique key constraint
+            '''
+            sql = "SELECT ip_address, port FROM "+ chain +" WHERE (`ip_address` LIKE '%"+ IP +"%')"
+            mycursor.execute(sql)
+            myresult = mycursor.fetchall()
+            '''
+
+            #insert into DB but on duplicate do nothing
+            sql = "INSERT INTO "+ chain +" (ip_address, port) VALUES(%s, %s) ON DUPLICATE KEY UPDATE id=id"
             val = (IP, port)
-            mycursor.execute(sql, val)
-            self.mydb.commit()
-            mycursor.close()
-            return True
-        
-        else:
-            #check if port is also the same
-            foundPorts = []
-            for x in myresult:
-                #get port
-                foundPorts.append(x[1])
-            if port not in foundPorts:
-                #port not found with same ip address
-                sql = "INSERT INTO "+ chain +" (ip_address, port) VALUES (%s, %s)"
-                val = (IP, port)
+            try:
                 mycursor.execute(sql, val)
-                self.mydb.commit()
-                mycursor.close()
-                return True
+            except Exception as e:
+                logging.debug(e)
+            
+        #commit transaktion
+        try:
+            self.mydb.commit()
+            logging.debug("inserted new IPs in DB")
+        except Exception as e:
+            logging.debug(e)
+
+        #close cursor
         mycursor.close()
-        return False
 
     def insertJson(self, chain: str, IP: str, port: int, Object):
         '''
@@ -144,11 +146,11 @@ class dbConnector:
                 mycursor.close()
                 logging.debug("addr json")
                 iChain = data["chain"]
-                countInsert = 0
+                insertArray = []
                 for payload in data["payload"]["addr_list"]:
-                    success = self.insertIP(iChain, payload["IPv6/4"], payload["port"])
-                    if(success): countInsert += 1
-                logging.debug("inserted "+ str(countInsert) +" new IPs in DB")
+                    #success = self.insertIP(iChain, payload["IPv6/4"], payload["port"])
+                    insertArray.append([iChain, payload["IPv6/4"], payload["port"]])
+                self.insertIP(insertArray)
 
         #close all unclosed cursors
         try:
