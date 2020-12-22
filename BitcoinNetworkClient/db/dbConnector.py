@@ -80,14 +80,21 @@ class dbConnector:
             dbID = myresult[0][0]
 
         if(Object == None):
-            #add try to database and remove entry from queue tag
+            #add try to database and remove entry from queue tag also set Prio to min
+            sql = "SELECT MIN(queue_prio) FROM "+ chain
+            mycursor.execute(sql)
+            myresult = mycursor.fetchall()
+            minCount = myresult[0][0]
+
             #https://stackoverflow.com/a/3466
-            sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue) VALUES (%s, NOW(), FALSE) \
+            sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue, try_count, queue_prio) VALUES (%s, NOW(), FALSE, 0, %s+1) \
                 ON DUPLICATE KEY UPDATE \
                 last_try_time=VALUES(last_try_time), \
-                added_to_queue=VALUES(added_to_queue);"
+                added_to_queue=VALUES(added_to_queue), \
+                try_count = try_count + 1, \
+                queue_prio=VALUES(queue_prio);"
             #needs tuple for some reason
-            val = (dbID,)
+            val = (dbID, minCount)
             mycursor.execute(sql, val)
             self.mydb.commit()
             mycursor.close()
@@ -145,8 +152,14 @@ class dbConnector:
 
         mycursor = self.mydb.cursor()
 
+        '''
         #get items that are not last tried in the set interval -> DAY HOUR:MIN:SEC or never tried -> NULL
         sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '1 0:0:0' DAY_SECOND) OR `last_try_time` IS NULL AND `added_to_queue` is FALSE"
+        '''
+        #LIMITS TO 100 // prio NULL value if not null sort by last_try_time ASC else sort ASC by id
+        sql = "SELECT id, ip_address, port \
+                FROM "+ chain +" \
+                WHERE try_count = ( SELECT MIN(queue_prio) FROM main) ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT 200"
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
