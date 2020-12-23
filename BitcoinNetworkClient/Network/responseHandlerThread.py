@@ -34,7 +34,7 @@ class responseHandlerThread(threading.Thread):
                 self.handleResponse(tmp)
             except Exception as e:
                 #no valid payload was found
-                logging.debug(e)
+                logging.warning(e)
 
     def handleResponse(self, Header: BitcoinHeader):
 
@@ -88,7 +88,7 @@ class responseHandlerThread(threading.Thread):
                 "length": tmp["length"],
                 "payload": wantedInv
             }
-            print(json.dumps(showInv, indent= 4))
+            #print(json.dumps(showInv, indent= 4))
 
             #send getaddr if not already send
             #second getadr because < 70013 is not sending feefilter msg
@@ -99,4 +99,4 @@ class responseHandlerThread(threading.Thread):
             return
 
         #default
-        print(json_object)    
+        #print(json_object)    

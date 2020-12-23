@@ -56,7 +56,7 @@ class dbGeoIp:
                 longitude = float("{:.4f}".format((response.location.longitude)))
                 if(longitude == None): longitude = "NULL"
             except Exception as e:
-                logging.debug(e)
+                logging.warning(e)
 
             reader = geoip2.database.Reader(str(pathlib.Path(__file__).parent.absolute())+'/GeoLite2-ASN.mmdb')
             try:
@@ -68,7 +68,7 @@ class dbGeoIp:
                 asnName = response.autonomous_system_organization
                 if(asnName == None): asnName = "NULL"
             except Exception as e:
-                logging.debug(e)
+                logging.warning(e)
 
             sql1 = "INSERT INTO "+self.chain+"geodata (continent, country, city ,latitude, longitude, asnNr, asnName) \
                     VALUES (%s, %s, %s, %s, %s, %s, %s);"
@@ -88,5 +88,5 @@ class dbGeoIp:
             self.mydb.commit()
             mycursor.close()
             
-            logging.debug("Inserted Geo Data into "+ str(self.dbID))
+            logging.info("Inserted Geo Data into "+ str(self.dbID))
             return

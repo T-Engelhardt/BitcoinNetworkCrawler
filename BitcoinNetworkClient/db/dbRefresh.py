@@ -14,7 +14,7 @@ import queue
 
 class refreshNetworkQueue(threading.Thread):
 
-    def __init__(self, chain: str, queue: NetworkQueue, pool: pooling.MySQLConnectionPool):
+    def __init__(self, chain: str, queuelenght: int, queue: NetworkQueue, pool: pooling.MySQLConnectionPool):
         threading.Thread.__init__(self)
         self.name = "Refill Network Queue"
 
@@ -22,6 +22,7 @@ class refreshNetworkQueue(threading.Thread):
 
         self.networkQueue = queue
         self.chain = chain
+        self.queuelenght = queuelenght
 
         self.pool = pool
 
@@ -34,7 +35,7 @@ class refreshNetworkQueue(threading.Thread):
 
             logging.debug("Queue Size: "+str(self.networkQueue.getQueueObject().qsize()))
             self.db = dbConnector(self.pool)
-            self.db.fillQueue(self.chain, self.networkQueue)
+            self.db.fillQueue(self.chain, self.networkQueue, self.queuelenght)
             self.db.close()
 
             sleep(60)

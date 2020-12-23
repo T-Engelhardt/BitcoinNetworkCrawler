@@ -21,9 +21,7 @@ def start():
     
     print("RUN")
     
-    logging.basicConfig(level=logging.DEBUG,
-                    format='(%(threadName)-10s) %(message)s',
-                    )
+    logging.basicConfig(level=logging.INFO, format='(%(threadName)-10s) %(message)s',)
 
     #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
@@ -33,7 +31,7 @@ def start():
     #SELECT user_agent,COUNT(user_agent) FROM main GROUP BY user_agent ORDER BY COUNT(user_agent) desc ;
     #SELECT COUNT(*) FROM main
     #
-    q = NetworkQueue("main", 4, 200)
+    q = NetworkQueue("main", 8, 400)
     q.start()
 
     #print(data1util.OnionToIpv6("j2ehpso7ngkscjrm.onion"))

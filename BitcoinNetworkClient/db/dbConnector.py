@@ -29,7 +29,7 @@ class dbConnector:
             self.mydb = pool.get_connection()
             logging.debug("Got DB Connection")
         except Exception as e:
-            logging.debug(e)
+            logging.warning(e)
 
     def insertIP(self, data):
         #chain, ip, port -> Array/data
@@ -47,7 +47,7 @@ class dbConnector:
                 try:
                     IP = data1util.Ipv6ToOnion(ipaddress.IPv6Address(IP))
                 except Exception as e:
-                    logging.debug(e)
+                    logging.warning(e)
 
             #replaced with unique key constraint
             '''
@@ -62,14 +62,14 @@ class dbConnector:
             try:
                 mycursor.execute(sql, val)
             except Exception as e:
-                logging.debug(e)
+                logging.error("EXECUTE INSERT IP", e)
             
         #commit transaktion
         try:
             self.mydb.commit()
-            logging.debug("inserted new IPs in DB")
+            logging.info("inserted new IPs in DB")
         except Exception as e:
-            logging.debug(e)
+            logging.error("COMMIT INSERT IP", e)
 
         #close cursor
         mycursor.close()
@@ -111,7 +111,7 @@ class dbConnector:
             self.mydb.commit()
 
         else:
-            logging.debug("add Json to DB")
+            logging.info("add Json to DB")
 
             data = json.loads(Object)
 
@@ -124,7 +124,7 @@ class dbConnector:
                 self.mydb.commit()
                 '''
 
-                logging.debug("version json")
+                logging.info("version json")
 
                 protocolVersion = data["payload"]["version"]
                 payloadServices = data["payload"]["services"]
@@ -156,7 +156,7 @@ class dbConnector:
             elif(data["command"] == "addr"):
                 #we dont need the cursor
                 mycursor.close()
-                logging.debug("addr json")
+                logging.info("addr json")
                 iChain = data["chain"]
                 insertArray = []
                 for payload in data["payload"]["addr_list"]:
@@ -168,9 +168,9 @@ class dbConnector:
         try:
             mycursor.close()
         except Exception as e:
-            logging.debug(e)
+            logging.warning(e)
 
-    def fillQueue(self, chain: str, queue: NetworkQueue):
+    def fillQueue(self, chain: str, queue: NetworkQueue, queuelenght: int):
 
         mycursor = self.mydb.cursor()
 
@@ -181,7 +181,7 @@ class dbConnector:
         #LIMITS TO 100 // prio NULL value if not null sort by last_try_time ASC else sort ASC by id
         sql = "SELECT id, ip_address, port \
                 FROM "+ chain +" \
-                WHERE try_count = ( SELECT MIN(queue_prio) FROM main) AND `added_to_queue` is FALSE ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT 200"
+                WHERE try_count = ( SELECT MIN(queue_prio) FROM main) AND `added_to_queue` is FALSE ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT " + str(queuelenght)
 
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
@@ -193,7 +193,7 @@ class dbConnector:
             ItemIDs.append(x[0])
             forQueue.append(tmp)
         if(len(forQueue) == 0):
-            logging.debug("No new items to add to Queue")
+            logging.info("No new items to add to Queue")
         else:   
             #mark added item to queue with added_to_queue in DB
             #addToQueue returns number of added items
@@ -202,6 +202,7 @@ class dbConnector:
             markedIDs = ItemIDs[:ItemAddedCount]
             #create string with id from array -> remove [] and remove space between ids
             prepareIDs = str(markedIDs)[1:-1].replace(', ',',')
+            logging.info("Added new items to Queue")
             logging.debug("markedIDs: "+ prepareIDs)
             sql = "UPDATE "+ chain +" SET `added_to_queue`=1 WHERE FIND_IN_SET(`id`, '"+ prepareIDs +"')"
             mycursor.execute(sql)
@@ -211,14 +212,14 @@ class dbConnector:
         try:
             mycursor.close()
         except Exception as e:
-            logging.debug(e)
+            logging.warning(e)
         
     def close(self):
         try:
             self.mydb.close()
             logging.debug("Return DB Connection")
         except Exception as e:
-            logging.debug(e)
+            logging.warning(e)
         
     def clearQueueTag(self, chain: str):
 

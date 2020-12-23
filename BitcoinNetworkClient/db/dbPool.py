@@ -18,7 +18,7 @@ class dbPool:
                                                                             auth_plugin='mysql_native_password')
 
         except Exception as e:
-            logging.debug(e)
+            logging.error(e)
 
     def getPool(self) -> pooling.MySQLConnectionPool:
         return self.connection_pool

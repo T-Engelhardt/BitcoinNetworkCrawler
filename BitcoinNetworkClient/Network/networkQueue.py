@@ -25,7 +25,7 @@ class NetworkQueue(threading.Thread):
         #number of clients plus 2 for puffer(dbRefresh)
         self.pool = dbPool(threadsnr+2)
 
-        refreshNetworkQueue(chain, self, self.pool.getPool()).start()
+        refreshNetworkQueue(chain, queuelenght, self, self.pool.getPool()).start()
 
     def start(self):
         threadID = 1
@@ -69,7 +69,7 @@ class NetworkQueue(threading.Thread):
             logging.debug("Released lock -> getItemQueue")
             return item
         except Exception as e:
-            logging.debug(e)
+            logging.warning(e)
         self.getLock.release()
         logging.debug("Released lock -> getItemQueue")
         return None

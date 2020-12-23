@@ -36,14 +36,14 @@ class Client(threading.Thread):
         self.pool = pool
 
     def run(self):
-        logging.debug("Starting")
+        logging.info("Starting")
 
         thisConnection = True
 
         while self.exitFlag.full():
 
             while thisConnection:
-                logging.debug("Open a new Client")
+                logging.info("Open a new Client")
 
                 #wait for old connection/(Send/Recv) Threads to close
                 self.waitForChilds()
@@ -58,7 +58,7 @@ class Client(threading.Thread):
                     break
 
                 #found new Task
-                logging.debug('Found new Task ' + str(qdata[0]) + " " + str(qdata[1]) + " " + str(qdata[2]))                
+                logging.info('Found new Task ' + str(qdata[0]) + " " + str(qdata[1]) + " " + str(qdata[2]))                
 
                 #open bitcoinConnection
                 sendEvent = threading.Event()
@@ -77,17 +77,17 @@ class Client(threading.Thread):
                     for t in self.ThreadChilds:
                         t.start()
                     #send and recive open so start connection
-                    logging.debug("init Connection")
+                    logging.info("init Connection")
                     self.bitcoinConnection.initConnection()
                 else:
                     #close DB connection
                     self.bitcoinConnection.closeDBConnection()
                     break
             
-            logging.debug("Close this Connection")
+            logging.info("Close this Connection")
 
         self.waitForChilds()
-        logging.debug("Exiting Client Thread")
+        logging.info("Exiting Client Thread")
 
     def waitForChilds(self):
         # Wait for all threads to complete
@@ -103,13 +103,13 @@ class Client(threading.Thread):
                 self.server = socks.socksocket()
                 self.server.settimeout(4.0)
                 self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
-                logging.debug("TOR connected")
+                logging.info("TOR connected")
                 return True
             except Exception as e:
-                logging.debug(e)
+                logging.warning(e)
                 if self.server:
                     self.server.close()
-                logging.debug("Could not open TOR socket")
+                logging.info("Could not open TOR socket")
                 return False
         else:
             #clear net socket
@@ -117,12 +117,13 @@ class Client(threading.Thread):
                 self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.server.settimeout(2.0)
                 self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
-                logging.debug("connected")
+                logging.info("connected")
                 return True
-            except socket.error:
+            except Exception as e:
+                logging.warning(e)
                 if self.server:
                     self.server.close()
-                logging.debug("Could not open socket")
+                logging.info("Could not open socket")
                 return False
 
 class ClientSent(threading.Thread):
@@ -147,7 +148,7 @@ class ClientSent(threading.Thread):
                     logging.debug("send Data: " + senddata.getDir()["cmd"])
                     self.server.send(bytes(senddata))
                 except Exception as e:
-                    logging.debug(e)
+                    logging.warning(e)
                     break
             else:
                 #type NONE found so close Thread
@@ -191,7 +192,7 @@ class ClientRecv(threading.Thread):
                     data += self.server.recv(4096)
                     loopTimeoutCounter = 0
                 except Exception as e:
-                    logging.debug(e)
+                    #logging.debug(e)
                     loopTimeoutCounter += 1
                     logging.debug("LoopTimeout " + str(loopTimeoutCounter))
                 
@@ -219,7 +220,7 @@ class ClientRecv(threading.Thread):
                 self.cBitcoinConnection.recvMsg(RecvID, data)
             RecvID += 1
 
-        logging.debug("connection closed")
+        logging.info("connection closed")
         #close socket, send Thread, and DB connection in BitcoinConnection
         self.server.close()
         self.cBitcoinConnection.killSendThread()
