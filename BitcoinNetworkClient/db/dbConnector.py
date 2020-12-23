@@ -153,7 +153,6 @@ class dbConnector:
                 iChain = data["chain"]
                 insertArray = []
                 for payload in data["payload"]["addr_list"]:
-                    #success = self.insertIP(iChain, payload["IPv6/4"], payload["port"])
                     insertArray.append([iChain, payload["IPv6/4"], payload["port"]])
                 self.insertIP(insertArray)
 
@@ -171,7 +170,7 @@ class dbConnector:
         #get items that are not last tried in the set interval -> DAY HOUR:MIN:SEC or never tried -> NULL
         sql = "SELECT id, ip_address, port FROM "+ chain +" WHERE `last_try_time` < (NOW() - INTERVAL '1 0:0:0' DAY_SECOND) OR `last_try_time` IS NULL AND `added_to_queue` is FALSE"
         '''
-        #LIMITS TO 100 // prio NULL value if not null sort by last_try_time ASC else sort ASC by id
+        #LIMITS TO queuelength // prio NULL value if not null sort by last_try_time ASC else sort ASC by id
         sql = "SELECT id, ip_address, port \
                 FROM "+ chain +" \
                 WHERE try_count = ( SELECT MIN(queue_prio) FROM main) AND `added_to_queue` is FALSE ORDER BY last_try_time is NULL DESC , last_try_time ASC , id ASC LIMIT " + str(queuelenght)
