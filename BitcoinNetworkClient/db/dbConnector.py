@@ -50,31 +50,12 @@ class dbConnector:
                 except Exception as e:
                     logging.warning(e)
 
-            #replaced with unique key constraint
-            '''
-            sql = "SELECT ip_address, port FROM "+ chain +" WHERE (`ip_address` LIKE '%"+ IP +"%')"
-            mycursor.execute(sql)
-            myresult = mycursor.fetchall()
-            '''
-
             #insert into DB but on duplicate do nothing
             sql = "INSERT INTO "+ chain +" (ip_address, port) VALUES(%s, %s) ON DUPLICATE KEY UPDATE id=id"
             val = (IP, port)
             
             #try again until DB is available again
             self.cursorExecuteWait(mycursor, sql, val, "Insert IP")
-            '''
-            while True:
-                try:
-                    mycursor.execute(sql, val)
-                    break
-                except mysql.connector.Error as e:
-                    logging.error("Insert IP execute: CODE: %s MSG: %s", str(e.errno), e.msg)
-                    #1213 (40001): Deadlock found when trying to get lock; try restarting transaction
-                    if(e.errno == 1213):
-                        logging.info("Retry Insert IP execute")
-                        sleep(1)
-            '''
 
         #commit transaktion
         try:
