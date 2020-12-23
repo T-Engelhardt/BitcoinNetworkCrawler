@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 from BitcoinNetworkClient.db.geoip.dbGeoIp import dbGeoIp
 from BitcoinNetworkClient.util.data1 import data1util
+import mysql.connector
 from time import sleep
 import ipaddress
 import logging
@@ -59,17 +60,28 @@ class dbConnector:
             #insert into DB but on duplicate do nothing
             sql = "INSERT INTO "+ chain +" (ip_address, port) VALUES(%s, %s) ON DUPLICATE KEY UPDATE id=id"
             val = (IP, port)
-            try:
-                mycursor.execute(sql, val)
-            except Exception as e:
-                logging.error("EXECUTE INSERT IP", e)
             
+            #try again until DB is available again
+            self.cursorExecuteWait(mycursor, sql, val, "Insert IP")
+            '''
+            while True:
+                try:
+                    mycursor.execute(sql, val)
+                    break
+                except mysql.connector.Error as e:
+                    logging.error("Insert IP execute: CODE: %s MSG: %s", str(e.errno), e.msg)
+                    #1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+                    if(e.errno == 1213):
+                        logging.info("Retry Insert IP execute")
+                        sleep(1)
+            '''
+
         #commit transaktion
         try:
             self.mydb.commit()
             logging.info("inserted new IPs in DB")
-        except Exception as e:
-            logging.error("COMMIT INSERT IP", e)
+        except mysql.connector.Error as e:
+            logging.error("Insert IP commit: CODE: %s MSG: %s", str(e.errno), e.msg)
 
         #close cursor
         mycursor.close()
@@ -205,7 +217,10 @@ class dbConnector:
             logging.info("Added new items to Queue")
             logging.debug("markedIDs: "+ prepareIDs)
             sql = "UPDATE "+ chain +" SET `added_to_queue`=1 WHERE FIND_IN_SET(`id`, '"+ prepareIDs +"')"
-            mycursor.execute(sql)
+
+            #fill Queue locked up in testing
+            self.cursorExecuteWait(mycursor, sql, None, "fillQueue markIDs")
+
             self.mydb.commit()
 
         #close all unclosed cursors
@@ -230,14 +245,17 @@ class dbConnector:
         logging.debug("Cleared Queue tag in DB")
         mycursor.close()
 
-    '''
-    def deleteChain(self, chain: str):
-
-        mycursor = self.mydb.cursor()
-        sql = "DELETE FROM "+ chain +";"
-        mycursor.execute(sql)
-        sql = "ALTER TABLE "+ chain +" AUTO_INCREMENT = 1"
-        mycursor.execute(sql)
-        self.mydb.commit()
-        mycursor.close()
-    '''
+    def cursorExecuteWait(self, ObjectCursor, sql: str, val, infoError: str):
+        while True:
+            try:
+                if(val == None):
+                    ObjectCursor.execute(sql)
+                else:
+                    ObjectCursor.execute(sql, val)
+                break
+            except mysql.connector.Error as e:
+                logging.error("%s execute -> CODE: %s MSG: %s", infoError, str(e.errno), e.msg)
+                #1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+                if(e.errno == 1213):
+                    logging.info("Retry cursor execute")
+                    sleep(1)
