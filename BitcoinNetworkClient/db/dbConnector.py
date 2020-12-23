@@ -194,7 +194,6 @@ class dbConnector:
             markedIDs = ItemIDs[:ItemAddedCount]
             #create string with id from array -> remove [] and remove space between ids
             prepareIDs = str(markedIDs)[1:-1].replace(', ',',')
-            logging.info("Added new items to Queue")
             logging.debug("markedIDs: "+ prepareIDs)
             sql = "UPDATE "+ chain +" SET `added_to_queue`=1 WHERE FIND_IN_SET(`id`, '"+ prepareIDs +"')"
 
@@ -202,6 +201,7 @@ class dbConnector:
             self.cursorExecuteWait(mycursor, sql, None, "fillQueue markIDs")
 
             self.mydb.commit()
+            logging.info("Added new items to Queue")
 
         #close all unclosed cursors
         try:
