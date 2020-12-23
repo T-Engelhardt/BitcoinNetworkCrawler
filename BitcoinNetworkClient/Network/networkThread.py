@@ -44,9 +44,6 @@ class Client(threading.Thread):
 
             while thisConnection:
                 logging.info("Open a new Client")
-
-                #wait for old connection/(Send/Recv) Threads to close
-                self.waitForChilds()
                 
                 qdata = self.NetQueue.getItemQueue()
                 if(qdata == None):
@@ -84,6 +81,9 @@ class Client(threading.Thread):
                     self.bitcoinConnection.closeDBConnection()
                     break
             
+            logging.debug("Waiting for childs")
+            #wait for (Send/Recv) Threads to close
+            self.waitForChilds()
             logging.info("Close this Connection")
 
         self.waitForChilds()

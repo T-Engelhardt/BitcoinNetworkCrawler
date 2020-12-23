@@ -190,6 +190,7 @@ class dbConnector:
             #mark added item to queue with added_to_queue in DB
             #addToQueue returns number of added items
             ItemAddedCount = queue.addToQueue(forQueue)
+            logging.info("Added new items to Queue")
             #only get items that where added to Queue
             markedIDs = ItemIDs[:ItemAddedCount]
             #create string with id from array -> remove [] and remove space between ids
@@ -201,7 +202,7 @@ class dbConnector:
             self.cursorExecuteWait(mycursor, sql, None, "fillQueue markIDs")
 
             self.mydb.commit()
-            logging.info("Added new items to Queue")
+            logging.debug("Marked IDs from Queue in DB")
 
         #close all unclosed cursors
         try:

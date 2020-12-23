@@ -1,3 +1,4 @@
+import sys
 from BitcoinNetworkClient.db.dbConvert import dbConvert
 from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
 import threading
@@ -33,6 +34,7 @@ def start():
     #
     q = NetworkQueue("main", 8, 400)
     q.start()
+    sys.exit(0)
 
     #print(data1util.OnionToIpv6("j2ehpso7ngkscjrm.onion"))
     #print(data1util.Ipv6ToOnion(ipaddress.IPv6Address("fd87:d87e:eb43:437f:1ea0:8efb:8cab:85a4")))

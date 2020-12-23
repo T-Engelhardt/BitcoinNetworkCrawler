@@ -5,6 +5,7 @@ from BitcoinNetworkClient.Network.networkThread import Client
 import logging
 import threading
 import queue
+import signal
 
 
 class NetworkQueue(threading.Thread):
@@ -22,10 +23,14 @@ class NetworkQueue(threading.Thread):
         self.addLock = threading.Lock()
         self.getLock = threading.Lock()
 
+        #register signal_handler
+        signal.signal(signal.SIGINT, self.signal_handler)
+
         #number of clients plus 2 for puffer(dbRefresh)
         self.pool = dbPool(threadsnr+2)
 
-        refreshNetworkQueue(chain, queuelenght, self, self.pool.getPool()).start()
+        self.refreshQueue = refreshNetworkQueue(chain, queuelenght, self, self.pool.getPool())
+        self.refreshQueue.start()
 
     def start(self):
         threadID = 1
@@ -82,6 +87,14 @@ class NetworkQueue(threading.Thread):
                 pass
         # Notify threads it's time to exit
         self.exitFlag.get()
+
+    def signal_handler(self, sig, frame):
+        logging.info("Exiting Program")
+        self.exitFlag.get()
+        self.refreshQueue.stop()
+        logging.info("Waiting for Clients to finish the Queue")
+        self.waitForClients()
+        self.refreshQueue.join()
 
     def waitForClients(self):
         # Wait for all threads to complete
