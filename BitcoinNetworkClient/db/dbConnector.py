@@ -6,7 +6,9 @@ if TYPE_CHECKING:
     from mysql.connector import pooling
 
 from BitcoinNetworkClient.db.geoip.dbGeoIp import dbGeoIp
+from BitcoinNetworkClient.util.data1 import data1util
 from time import sleep
+import ipaddress
 import logging
 import json
 
@@ -39,6 +41,13 @@ class dbConnector:
             chain = info[0]
             IP = info[1]
             port = info[2]
+
+            #check for onion address
+            if(str(IP).startswith("fd87:d87e:eb43")):
+                try:
+                    IP = data1util.Ipv6ToOnion(ipaddress.IPv6Address(IP))
+                except Exception as e:
+                    logging.debug(e)
 
             #replaced with unique key constraint
             '''

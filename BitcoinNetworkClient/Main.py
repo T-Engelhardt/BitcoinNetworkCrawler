@@ -32,8 +32,11 @@ def start():
     #SELECT user_agent,COUNT(user_agent) FROM main GROUP BY user_agent ORDER BY COUNT(user_agent) desc ;
     #SELECT COUNT(*) FROM main
     #
-    q = NetworkQueue("main", 4, 200)
+    q = NetworkQueue("main", 1, 10)
     q.start()
+
+    #print(data1util.OnionToIpv6("j2ehpso7ngkscjrm.onion"))
+    #print(data1util.Ipv6ToOnion(ipaddress.IPv6Address("fd87:d87e:eb43:437f:1ea0:8efb:8cab:85a4")))
 
     #try:
     #    q.addToQueue(ipList)

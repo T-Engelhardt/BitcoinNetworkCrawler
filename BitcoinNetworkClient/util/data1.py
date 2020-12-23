@@ -3,6 +3,8 @@ from time import time
 from enum import Enum
 import binascii
 import struct
+from base64 import b32decode, b32encode
+import ipaddress
 
 
 class Endian(Enum):
@@ -125,3 +127,23 @@ class data1util:
 
     def getTimefromBint(input):
         return datetime.fromtimestamp(int(input)).strftime("%Y-%m-%d %H:%M:%S")
+
+    def OnionToIpv6(onion: str) -> ipaddress.IPv6Address:
+        #https://github.com/bitcoin/bitcoin/blob/c7ad94428ab6f54661d7a5441e1fdd0ebf034903/contrib/seeds/generate-seeds.py
+        onionPrefix = b'\xfd\x87\xd8\x7e\xeb\x43'
+        if len(onion)>6 and onion.endswith('.onion'):
+            vchAddr = b32decode(onion[0:-6], True)
+            if len(vchAddr) != 16-len(onionPrefix):
+                raise ValueError('Invalid onion %s' % vchAddr)
+            #return onionPrefix + vchAddr
+            return ipaddress.IPv6Address(onionPrefix + vchAddr)
+        else:
+            raise Exception("No Onion Addres found")
+
+    def Ipv6ToOnion(ipv6: ipaddress.IPv6Address) -> str:
+        if(ipv6.version != 6):
+            raise ValueError("Invalid ipv6")
+        if(ipv6.packed[0:6] != b'\xfd\x87\xd8\x7e\xeb\x43'):
+            raise ValueError("Not a valid ipv6 for onion address")
+        #remove Prefix -> encode bytes into str -> make it lower case -> add .onion
+        return b32encode(ipv6.packed[6:]).decode("utf-8").lower() + ".onion"
