@@ -10,6 +10,7 @@ from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
 from time import sleep
 import logging
 import socket
+import socks
 import threading
 import logging
 
@@ -95,17 +96,33 @@ class Client(threading.Thread):
 
     def open_socket(self) -> bool:
         #opens socket returns true if succesfull
-        try:
-            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.settimeout(2.0)
-            self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
-            logging.debug("connected")
-            return True
-        except socket.error:
-            if self.server:
-                self.server.close()
-            logging.debug("Could not open socket")
-            return False
+        if(self.bitcoinConnection.getIP().endswith(".onion")):
+            #open socket trough socket
+            try:
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050, True)
+                self.server = socks.socksocket()
+                self.server.settimeout(4.0)
+                self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
+                logging.debug("TOR connected")
+                return True
+            except Exception as e:
+                logging.debug(e)
+                if self.server:
+                    self.server.close()
+                logging.debug("Could not open TOR socket")
+                return False
+        else:
+            try:
+                self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.server.settimeout(2.0)
+                self.server.connect((self.bitcoinConnection.getIP(),self.bitcoinConnection.getPort(),))
+                logging.debug("connected")
+                return True
+            except socket.error:
+                if self.server:
+                    self.server.close()
+                logging.debug("Could not open socket")
+                return False
 
 class ClientSent(threading.Thread):
 

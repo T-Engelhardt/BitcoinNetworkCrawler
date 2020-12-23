@@ -147,8 +147,11 @@ class dbConnector:
                 mycursor.execute(sql, val)
                 self.mydb.commit()
 
-                #insert geo DATA
-                dbGeoIp(chain, IP, dbID, self.mydb).insertGeoData()
+                #insert geo DATA -> skip geodata for .onion
+                if(str(IP).endswith(".onion")):
+                    pass
+                else:
+                    dbGeoIp(chain, IP, dbID, self.mydb).insertGeoData()
 
             elif(data["command"] == "addr"):
                 #we dont need the cursor
