@@ -12,7 +12,7 @@ class dbPool:
                                                                             pool_size=poolsize,
                                                                             pool_reset_session=True,
                                                                             host='127.0.0.1',
-                                                                            database='BitcoinNodesTest',
+                                                                            database='BitcoinNodes',
                                                                             user='root',
                                                                             password='root',
                                                                             auth_plugin='mysql_native_password')

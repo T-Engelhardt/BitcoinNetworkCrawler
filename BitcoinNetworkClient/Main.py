@@ -1,3 +1,4 @@
+from BitcoinNetworkClient.db.dbConvert import dbConvert
 from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
 import threading
 from BitcoinNetworkClient.db.dbConnector import dbConnector
@@ -32,7 +33,7 @@ def start():
     #SELECT user_agent,COUNT(user_agent) FROM main GROUP BY user_agent ORDER BY COUNT(user_agent) desc ;
     #SELECT COUNT(*) FROM main
     #
-    q = NetworkQueue("main", 1, 10)
+    q = NetworkQueue("main", 4, 200)
     q.start()
 
     #print(data1util.OnionToIpv6("j2ehpso7ngkscjrm.onion"))

@@ -112,6 +112,7 @@ class Client(threading.Thread):
                 logging.debug("Could not open TOR socket")
                 return False
         else:
+            #clear net socket
             try:
                 self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.server.settimeout(2.0)
