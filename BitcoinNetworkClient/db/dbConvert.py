@@ -31,3 +31,15 @@ class dbConvert:
         self.mydb.commit()
         mycursor.close()
         self.mydb.close()
+
+    '''
+    def deleteChain(self, chain: str):
+
+        mycursor = self.mydb.cursor()
+        sql = "DELETE FROM "+ chain +";"
+        mycursor.execute(sql)
+        sql = "ALTER TABLE "+ chain +" AUTO_INCREMENT = 1"
+        mycursor.execute(sql)
+        self.mydb.commit()
+        mycursor.close()
+    '''
