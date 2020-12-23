@@ -18,9 +18,10 @@ class dbConnector:
 
     def __init__(self, pool: pooling.MySQLConnectionPool):
 
+        self.gotDBConnection = False
         self.openDBConnection(pool)
 
-        while not self.mydb.is_connected():
+        while not self.gotDBConnection:
             logging.debug("Got NO DB Connection ... Trying again")
             sleep(1)
             self.openDBConnection(pool)
@@ -28,6 +29,7 @@ class dbConnector:
     def openDBConnection(self, pool: pooling.MySQLConnectionPool):
         try:
             self.mydb = pool.get_connection()
+            self.gotDBConnection = True
             logging.debug("Got DB Connection")
         except Exception as e:
             logging.warning(e)
