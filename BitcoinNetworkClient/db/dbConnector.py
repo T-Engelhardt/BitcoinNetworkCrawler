@@ -18,6 +18,9 @@ class dbConnector:
 
     def __init__(self, pool: pooling.MySQLConnectionPool):
 
+        #set minCount to zero in case this is not set in insertJSON
+        self.minCount = 0
+
         self.gotDBConnection = False
         self.openDBConnection(pool)
 
@@ -91,17 +94,18 @@ class dbConnector:
             sql = "SELECT MIN(queue_prio) FROM "+ chain
             mycursor.execute(sql)
             myresult = mycursor.fetchall()
-            minCount = myresult[0][0]
+            self.minCount = myresult[0][0]
 
             #https://stackoverflow.com/a/3466
-            sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue, try_count, queue_prio) VALUES (%s, NOW(), FALSE, 0, %s+1) \
+            #add 2 to prio for a try if succesfull reset to min(prio) + 1 in version msg
+            sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue, try_count, queue_prio) VALUES (%s, NOW(), FALSE, 0, %s+2) \
                 ON DUPLICATE KEY UPDATE \
                 last_try_time=VALUES(last_try_time), \
                 added_to_queue=VALUES(added_to_queue), \
                 try_count = try_count + 1, \
                 queue_prio=VALUES(queue_prio);"
             #needs tuple for some reason
-            val = (dbID, minCount)
+            val = (dbID, self.minCount)
             mycursor.execute(sql, val)
             self.mydb.commit()
 
@@ -130,15 +134,17 @@ class dbConnector:
                 #https://stackoverflow.com/a/3466
                 #dont insert last_try_time because at the start of BitcoinConnection already set last_try_time
                 #increment try_success_count by one -> in Values dummy 0 because try_success_count gets incremented but VALUES need to have the same number of columns
-                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_success_time, try_success_count) VALUES (%s, %s, %s, %s, %s, NOW(), 0) \
+                #set prio to min(prio) + 1
+                sql = "INSERT INTO "+ chain +" (id, protocolVersion, servicesHex, user_agent, start_height, last_try_success_time, try_success_count, queue_prio) VALUES (%s, %s, %s, %s, %s, NOW(), 0, %s+1) \
                     ON DUPLICATE KEY UPDATE \
                     protocolVersion=VALUES(protocolVersion), \
                     servicesHex=VALUES(servicesHex), \
                     user_agent=VALUES(user_agent), \
                     start_height=VALUES(start_height), \
                     last_try_success_time=VALUES(last_try_success_time), \
-                    try_success_count = try_success_count + 1;"
-                val = (dbID, protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight)
+                    try_success_count = try_success_count + 1, \
+                    queue_prio=VALUES(queue_prio);"
+                val = (dbID, protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight, self.minCount)
                 mycursor.execute(sql, val)
                 self.mydb.commit()
 
