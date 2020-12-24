@@ -32,7 +32,7 @@ def start():
     #SELECT user_agent,COUNT(user_agent) FROM main GROUP BY user_agent ORDER BY COUNT(user_agent) desc ;
     #SELECT COUNT(*) FROM main
     #
-    q = NetworkQueue("main", 8, 400)
+    q = NetworkQueue("main", 10, 400)
     q.start()
     sys.exit(0)
 
