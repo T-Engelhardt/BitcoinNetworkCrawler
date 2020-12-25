@@ -26,8 +26,8 @@ class NetworkQueue(threading.Thread):
         #register signal_handler
         signal.signal(signal.SIGINT, self.signal_handler)
 
-        #number of clients plus 2 for puffer(dbRefresh)
-        self.pool = dbPool(threadsnr+2)
+        #number of clients plus 4 for puffer(dbRefresh)
+        self.pool = dbPool(threadsnr+4)
 
         self.refreshQueue = refreshNetworkQueue(chain, queuelenght, self, self.pool.getPool())
         self.refreshQueue.start()
