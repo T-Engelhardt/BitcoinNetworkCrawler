@@ -25,14 +25,16 @@ class dbBitcoinCon(dbConnection):
 
     def getDBid(self) -> int:
         logging.debug("dbBitcoinCon trying to get DB id")
-        #get id of db entry
-        sql = "SELECT id, ip_address, port FROM "+ self.netInfo.getChain() +" \
-            WHERE (`ip_address` LIKE '%"+ self.netInfo.getIP() +"%') AND (`port` LIKE '%"+ str(self.netInfo.getPort()) +"%')"
 
         mycursor = self.getCursor()
 
+        #get id of db entry
+        sql = "SELECT id FROM "+ self.netInfo.getChain() +" WHERE ip_address = %s AND port = %s"
+
+        val = (self.netInfo.getIP(), self.netInfo.getPort())
+
         self.acquireDBlock()      
-        self.cursorExecuteWait(mycursor, sql, None, "getDBid")
+        self.cursorExecuteWait(mycursor, sql, val, "getDBid")
         myresult = mycursor.fetchall()
         self.releaseDBlock()
 
@@ -40,7 +42,11 @@ class dbBitcoinCon(dbConnection):
 
         if(len(myresult) == 0):
             raise Exception("Tried to find DB ID but no entry was found")
-        return myresult[0][0]
+        elif(len(myresult) == 1):
+            logging.debug("DBID "+ str(myresult[0][0]))
+            return myresult[0][0]
+        else:
+            raise Exception("More then one valid ip/port found")
 
     def insertJson(self, Object: str) -> None:
         #Object is json as string
