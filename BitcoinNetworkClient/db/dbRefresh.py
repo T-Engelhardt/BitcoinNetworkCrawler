@@ -43,7 +43,7 @@ class refreshNetworkQueue(threading.Thread):
                 sleep(10)
         
         #if exiting correctly unmark all Entries in the DB
-        self.clearQueueTag()
+        self.clearQueueTag(self.chain)
 
     def stop(self):
         self.exitFlag = True
