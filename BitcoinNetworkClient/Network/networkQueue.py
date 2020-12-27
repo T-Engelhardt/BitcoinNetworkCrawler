@@ -44,25 +44,28 @@ class NetworkQueue(threading.Thread):
     def getPool(self):
         return self.pool.getPool()
 
-    def addToQueue(self, datalist) -> int:
+    def addToQueue(self, datalist, queueLength: int) -> int:
+
+        #if datalist is smaller ensure that maxAddSize is not negativ
+        if(queueLength > len(datalist)):
+            queueLength = len(datalist)
+        #item count added to queue
+        maxAddSize = (queueLength - self.workQueue.qsize())
+
         logging.debug("Waiting for lock -> addToQueue")
         self.addLock.acquire()
         logging.debug("Acquired lock -> addToQueue")
+
         # Fill the queue
-        countAddedItems = 0
-        for data in datalist:
-            try:
-                self.workQueue.put(data, block=False)
-                countAddedItems += 1
-            except:
-                logging.debug("Queue Full but "+ str(countAddedItems) +" Item got added to Queue")
-                self.addLock.release()
-                logging.debug("Released lock -> addToQueue")
-                return countAddedItems
-        logging.debug("All "+ str(countAddedItems) +" Items got added to Queue")
+        for data in datalist[:maxAddSize]:
+            #block until a new slot is open -> to ensure that all items get added to queue and no one is skipped
+            self.workQueue.put(data)
+
         self.addLock.release()
         logging.debug("Released lock -> addToQueue")
-        return countAddedItems
+
+        logging.debug(str(maxAddSize) +" Items got added to Queue")
+        return maxAddSize
 
     def getItemQueue(self):
         logging.debug("Waiting for lock -> getItemQueue")

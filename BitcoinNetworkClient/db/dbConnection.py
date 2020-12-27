@@ -108,7 +108,7 @@ class dbConnection:
         else:   
             #mark added item to queue with added_to_queue in DB
             #addToQueue returns number of added items
-            ItemAddedCount = queue.addToQueue(forQueue)
+            ItemAddedCount = queue.addToQueue(forQueue, queuelenght)
             logging.info("Added new items to Queue")
             #only get items that where added to Queue
             markedIDs = ItemIDs[:ItemAddedCount]
