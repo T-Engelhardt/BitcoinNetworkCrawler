@@ -53,7 +53,7 @@ class Client(threading.Thread):
                     break
 
                 #found new Task
-                logging.info('Found new Task ' + str(qdata[0]) + " " + str(qdata[1]) + " " + str(qdata[2]))                
+                logging.info('Found new Task '+ str(qdata))                
 
                 #open bitcoinConnection
                 sendEvent = threading.Event()

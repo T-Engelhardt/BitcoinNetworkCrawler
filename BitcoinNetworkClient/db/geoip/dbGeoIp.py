@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mysql.connector.pooling import PooledMySQLConnection
     from BitcoinNetworkClient.db.dbBitcoinCon import dbBitcoinCon
+    from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
 
 import pathlib
 import geoip2.database
@@ -12,10 +12,10 @@ import logging
 
 class dbGeoIp:
 
-    def __init__(self, chain: str, ip: str ,dbID: int, db: dbBitcoinCon):
-        self.ip = ip
-        self.chain = chain
+    def __init__(self, netInfo: bitcoinNetInfo, dbID: int, db: dbBitcoinCon):
+
         self.dbID = dbID
+        self.netInfo = netInfo
         self.mydb = db
 
     def insertGeoData(self):
@@ -23,7 +23,7 @@ class dbGeoIp:
         mycursor = self.mydb.getCursor()
 
         #check if there is already a GeoData entry
-        sql = "SELECT geoDataID FROM "+ self.chain +" WHERE id="+ str(self.dbID) +";"
+        sql = "SELECT geoDataID FROM "+ self.netInfo.getChain() +" WHERE id="+ str(self.dbID) +";"
 
         self.mydb.acquireDBlock()      
         self.mydb.cursorExecuteWait(mycursor, sql, None, "Geoip check if Null")
@@ -39,7 +39,7 @@ class dbGeoIp:
 
         reader = geoip2.database.Reader(str(pathlib.Path(__file__).parent.absolute())+'/GeoLite2-City.mmdb')
         try:
-            response = reader.city(self.ip)
+            response = reader.city(self.netInfo.getIP())
             continent = response.continent.names["en"]
             country = response.country.name
             city = response.city.name
@@ -50,7 +50,7 @@ class dbGeoIp:
 
         reader = geoip2.database.Reader(str(pathlib.Path(__file__).parent.absolute())+'/GeoLite2-ASN.mmdb')
         try:
-            response = reader.asn(self.ip)
+            response = reader.asn(self.netInfo.getIP())
             asnNr = response.autonomous_system_number
             asnName = response.autonomous_system_organization
         except Exception as e:
@@ -60,10 +60,10 @@ class dbGeoIp:
         if(geoDBid == None):
             logging.debug("NO GEODATA entry found in Database")
 
-            sql1 = "INSERT INTO "+self.chain+"geodata (continent, country, city ,latitude, longitude, asnNr, asnName) \
+            sql1 = "INSERT INTO "+ self.netInfo.getChain() +"geodata (continent, country, city ,latitude, longitude, asnNr, asnName) \
                     VALUES (%s, %s, %s, %s, %s, %s, %s);"
 
-            sql2 = "UPDATE "+ self.chain +" SET \
+            sql2 = "UPDATE "+ self.netInfo.getChain() +" SET \
                     geoDataID = LAST_INSERT_ID() \
                     WHERE id = "+ str(self.dbID)
 
@@ -78,7 +78,7 @@ class dbGeoIp:
         else:
             logging.debug("GEODATA already found for this entry in the Database")
             
-            sql = "Update "+ self.chain +"geodata SET \
+            sql = "Update "+ self.netInfo.getChain() +"geodata SET \
                 continent = %s, \
                 country = %s, \
                 city = %s, \

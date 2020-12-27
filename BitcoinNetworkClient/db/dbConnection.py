@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
 
 from BitcoinNetworkClient.util.data1 import data1util
+from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
 
 from mysql.connector import Error
 from time import sleep
@@ -99,7 +100,7 @@ class dbConnection:
         ItemIDs = []
 
         for x in myresult:
-            tmp = [x[1], x[2], chain]
+            tmp = bitcoinNetInfo(chain, x[1], x[2])
             #list all ids of items
             ItemIDs.append(x[0])
             forQueue.append(tmp)

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mysql.connector.pooling import MySQLConnectionPool
+    from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
 
 from BitcoinNetworkClient.db.dbConnection import dbConnection
 from BitcoinNetworkClient.db.geoip.dbGeoIp import dbGeoIp
@@ -13,21 +14,20 @@ import json
 
 class dbBitcoinCon(dbConnection):
 
-    def __init__(self, pool: MySQLConnectionPool, chain: str, ip: str, port: int):
+    def __init__(self, pool: MySQLConnectionPool, netInfo: bitcoinNetInfo):
         super().__init__(pool)
 
         self.connectionSuccess = False
 
-        self.chain = chain
-        self.ip = ip
-        self.port = port
+        self.netInfo = netInfo
 
         self.dbID = self.getDBid()
 
     def getDBid(self) -> int:
         logging.debug("dbBitcoinCon trying to get DB id")
         #get id of db entry
-        sql = "SELECT id, ip_address, port FROM "+ self.chain +" WHERE (`ip_address` LIKE '%"+ self.ip +"%') AND (`port` LIKE '%"+ str(self.port) +"%')"
+        sql = "SELECT id, ip_address, port FROM "+ self.netInfo.getChain() +" \
+            WHERE (`ip_address` LIKE '%"+ self.netInfo.getIP() +"%') AND (`port` LIKE '%"+ str(self.netInfo.getPort()) +"%')"
 
         mycursor = self.getCursor()
 
@@ -60,7 +60,7 @@ class dbBitcoinCon(dbConnection):
             payloadStartHeight = data["payload"]["start_height"]
 
 
-            sql = "Update "+ self.chain +" SET \
+            sql = "Update "+ self.netInfo.getChain() +" SET \
                 protocolVersion = %s, \
                 servicesHex = %s, \
                 user_agent = %s, \
@@ -77,10 +77,10 @@ class dbBitcoinCon(dbConnection):
             mycursor.close()
 
             #insert geo DATA -> skip geodata for .onion
-            if(str(self.ip).endswith(".onion")):
+            if(self.netInfo.getIP().endswith(".onion")):
                 pass
             else:
-                dbGeoIp(self.chain, self.ip, self.dbID, self).insertGeoData()
+                dbGeoIp(self.netInfo, self.dbID, self).insertGeoData()
 
             #mark connection as succesfull
             self.connectionSuccesfull()
@@ -104,7 +104,7 @@ class dbBitcoinCon(dbConnection):
 
         if(self.connectionSuccess):
             
-            sql = "Update "+ self.chain +" SET \
+            sql = "Update "+ self.netInfo.getChain() +" SET \
                 last_try_time = NOW(), \
                 last_try_success_time = NOW(), \
                 try_count = try_count + 1, \
@@ -117,7 +117,7 @@ class dbBitcoinCon(dbConnection):
         else:
             
             #multiply queue_mult by two but cap at 16
-            sql = "Update "+ self.chain +" SET \
+            sql = "Update "+ self.netInfo.getChain() +" SET \
                 last_try_time = NOW(), \
                 try_count = try_count + 1, \
                 queue_mult = CASE \

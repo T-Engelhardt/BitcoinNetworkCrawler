@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import threading
     from mysql.connector import pooling
+    from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
 
 from BitcoinNetworkClient.Network.responseHandlerThread import responseHandlerThread
 from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
@@ -22,14 +23,11 @@ import random
 
 class bitcoinConnection:
 
-    def __init__(self, motherThreadID: int, qdata: list, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
-        self.ip = qdata[0]
-        self.port = qdata[1]
-        self.chain = qdata[2]
-
+    def __init__(self, motherThreadID: int, qdata: bitcoinNetInfo, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
+        self.netInfo = qdata
         self.motherThreadID = motherThreadID
 
-        self.db = dbBitcoinCon(pool, self.chain, self.ip, self.port)
+        self.db = dbBitcoinCon(pool, qdata)
 
         self.sendEvent = sendEvent
         self.KeepAlive = True
@@ -83,13 +81,13 @@ class bitcoinConnection:
         self.sendEvent.set()
 
     def getIP(self) -> str:
-        return self.ip
+        return self.netInfo.getIP()
 
     def getPort(self) -> int:
-        return self.port
+        return self.netInfo.getPort()
 
     def getChain(self) -> str:
-        return self.chain
+        return self.netInfo.getChain()
 
     def VersionMsg(self):
         tmp = version({
@@ -115,28 +113,28 @@ class bitcoinConnection:
         })
 
         return BitcoinHeader({
-            "chain": self.chain,
+            "chain": self.netInfo.getChain(),
             "cmd": "version",
             "payload": tmp
         })
 
     def verackMsg(self):
         return BitcoinHeader({
-            "chain": self.chain,
+            "chain": self.netInfo.getChain(),
             "cmd": "verack",
             "payload": b''
         })
     
     def getaddrMsg(self):
         return BitcoinHeader({
-            "chain": self.chain,
+            "chain": self.netInfo.getChain(),
             "cmd": "getaddr",
             "payload": b''
         })
 
     def pongMsg(self, nonce):
         return BitcoinHeader({
-            "chain": self.chain,
+            "chain": self.netInfo.getChain(),
             "cmd": "pong",
             "payload": nonce
         })
