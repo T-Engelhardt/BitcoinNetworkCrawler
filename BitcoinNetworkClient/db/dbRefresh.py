@@ -25,10 +25,10 @@ class refreshNetworkQueue(threading.Thread):
 
         self.pool = pool
 
-        #clear previous enqueued Items
-        self.clearQueueTag(chain)
-
     def run(self):
+
+        #clear previous enqueued Items if not not closed probably last time
+        self.clearQueueTag()
 
         #breakout if self.flag is false // dont use while with sleep 60 -> incase of SIGINT it does take to long to exit -> check every 10 sec
         while not self.exitFlag:
@@ -43,12 +43,12 @@ class refreshNetworkQueue(threading.Thread):
                 sleep(10)
         
         #if exiting correctly unmark all Entries in the DB
-        self.clearQueueTag(self.chain)
+        self.clearQueueTag()
 
     def stop(self):
         self.exitFlag = True
     
-    def clearQueueTag(self, chain: str):
+    def clearQueueTag(self):
         self.db = dbConnection(self.pool)
-        self.db.clearQueueTag(chain)
+        self.db.clearQueueTag(self.chain)
         self.db.closeDBConnection()
