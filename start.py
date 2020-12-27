@@ -1,6 +1,4 @@
 #import threading
-import logging
-import sys
 from BitcoinNetworkClient.util.configParser import config
 import BitcoinNetworkClient.Main
 import argparse

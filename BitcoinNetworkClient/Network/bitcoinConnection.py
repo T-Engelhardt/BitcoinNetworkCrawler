@@ -16,7 +16,6 @@ from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
 from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
 from BitcoinNetworkClient.util.data1 import Bint, Endian
 
-from typing import List
 from time import time
 import ipaddress
 import random
