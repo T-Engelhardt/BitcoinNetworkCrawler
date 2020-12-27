@@ -1,0 +1,16 @@
+basic:
+    client: 10
+    length: 400
+    chain: main
+
+log:
+    level: INFO  
+
+mysql:
+    host: "127.0.0.1"
+    user: root
+    passwd: root
+    db: BitcoinNodes
+
+geoip:
+    enable: "1"

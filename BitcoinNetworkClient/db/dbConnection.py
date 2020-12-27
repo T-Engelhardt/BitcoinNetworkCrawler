@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from mysql.connector.pooling import MySQLConnectionPool, PooledMySQLConnection
     from mysql.connector.cursor import MySQLCursor
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
+    from BitcoinNetworkClient.util.configParser import config
 
 from BitcoinNetworkClient.util.data1 import data1util
 from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
@@ -19,8 +20,9 @@ import logging
 
 class dbConnection:
 
-    def __init__(self, pool: MySQLConnectionPool):
+    def __init__(self, pool: MySQLConnectionPool, cfg: config):
 
+        self.cfg = cfg
         self.dbLock = threading.Lock()
 
         #self.mydb = type(PooledMySQLConnection)
@@ -210,3 +212,6 @@ class dbConnection:
 
     def getCursor(self) -> MySQLCursor:
         return self.mydb.cursor()
+
+    def getConfig(self) -> config:
+        return self.cfg

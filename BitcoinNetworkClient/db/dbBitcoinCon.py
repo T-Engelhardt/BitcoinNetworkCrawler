@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mysql.connector.pooling import MySQLConnectionPool
     from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
+    from BitcoinNetworkClient.util.configParser import config
 
 from BitcoinNetworkClient.db.dbConnection import dbConnection
 from BitcoinNetworkClient.db.geoip.dbGeoIp import dbGeoIp
@@ -14,8 +15,8 @@ import json
 
 class dbBitcoinCon(dbConnection):
 
-    def __init__(self, pool: MySQLConnectionPool, netInfo: bitcoinNetInfo):
-        super().__init__(pool)
+    def __init__(self, pool: MySQLConnectionPool, netInfo: bitcoinNetInfo, cfg: config):
+        super().__init__(pool, cfg)
 
         self.connectionSuccess = False
 
@@ -82,11 +83,14 @@ class dbBitcoinCon(dbConnection):
 
             mycursor.close()
 
-            #insert geo DATA -> skip geodata for .onion
-            if(self.netInfo.getIP().endswith(".onion")):
-                pass
+            if(self.getConfig().getGeoIPEnable()):
+                #insert geo DATA -> skip geodata for .onion
+                if(self.netInfo.getIP().endswith(".onion")):
+                    pass
+                else:
+                    dbGeoIp(self.netInfo, self.dbID, self, self.getConfig()).insertGeoData()
             else:
-                dbGeoIp(self.netInfo, self.dbID, self).insertGeoData()
+                logging.info("Skipping GeoIP")
 
             #mark connection as succesfull
             self.connectionSuccesfull()

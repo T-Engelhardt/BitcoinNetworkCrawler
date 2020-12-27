@@ -4,19 +4,20 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from BitcoinNetworkClient.db.dbBitcoinCon import dbBitcoinCon
     from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
+    from BitcoinNetworkClient.util.configParser import config
 
-import pathlib
 import geoip2.database
 import logging
 
 
 class dbGeoIp:
 
-    def __init__(self, netInfo: bitcoinNetInfo, dbID: int, db: dbBitcoinCon):
+    def __init__(self, netInfo: bitcoinNetInfo, dbID: int, db: dbBitcoinCon, cfg: config):
 
         self.dbID = dbID
         self.netInfo = netInfo
         self.mydb = db
+        self.cfg = cfg
 
     def insertGeoData(self):
 
@@ -37,7 +38,7 @@ class dbGeoIp:
         #Null Island
         latitude, longitude = 0, 0
 
-        reader = geoip2.database.Reader(str(pathlib.Path(__file__).parent.absolute())+'/GeoLite2-City.mmdb')
+        reader = geoip2.database.Reader(self.cfg.getGeoIPDir()+'GeoLite2-City.mmdb')
         try:
             response = reader.city(self.netInfo.getIP())
             continent = response.continent.names["en"]
@@ -48,7 +49,7 @@ class dbGeoIp:
         except Exception as e:
             logging.warning(e)
 
-        reader = geoip2.database.Reader(str(pathlib.Path(__file__).parent.absolute())+'/GeoLite2-ASN.mmdb')
+        reader = geoip2.database.Reader(self.cfg.getGeoIPDir()+'GeoLite2-ASN.mmdb')
         try:
             response = reader.asn(self.netInfo.getIP())
             asnNr = response.autonomous_system_number

@@ -4,6 +4,7 @@ if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
     import queue
     from mysql.connector import pooling
+    from BitcoinNetworkClient.util.configParser import config
 
 from BitcoinNetworkClient.Network.bitcoinConnection import bitcoinConnection
 
@@ -22,13 +23,14 @@ class Client(threading.Thread):
     https://stackoverflow.com/questions/2719017/how-to-set-timeout-on-pythons-socket-recv-method
     '''
 
-    def __init__(self, threadID: int, NetQueue: NetworkQueue , exitFlag: queue, pool: pooling.MySQLConnectionPool):
+    def __init__(self, threadID: int, NetQueue: NetworkQueue , exitFlag: queue, pool: pooling.MySQLConnectionPool, cfg: config):
         threading.Thread.__init__(self)
         self.name = ("Client Mother " + str(threadID))
         self.threadID = threadID
 
         self.NetQueue = NetQueue
         self.exitFlag = exitFlag
+        self.cfg = cfg
 
         self.connected = False
         self.ThreadChilds = []
@@ -57,7 +59,7 @@ class Client(threading.Thread):
 
                 #open bitcoinConnection
                 sendEvent = threading.Event()
-                self.bitcoinConnection =  bitcoinConnection(self.threadID, qdata, sendEvent, self.pool)
+                self.bitcoinConnection =  bitcoinConnection(self.threadID, qdata, sendEvent, self.pool, self.cfg)
 
                 #returns true if succesfull
                 connected = self.open_socket()

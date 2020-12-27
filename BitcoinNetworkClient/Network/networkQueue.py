@@ -1,3 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from BitcoinNetworkClient.util.configParser import config
+
 from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
 from BitcoinNetworkClient.db.dbPool import dbPool
 from BitcoinNetworkClient.Network.networkThread import Client
@@ -10,13 +16,15 @@ import signal
 
 class NetworkQueue(threading.Thread):
 
-    def __init__(self, chain, threadsnr, queuelenght):
-        self.workQueue = queue.Queue(queuelenght)
+    def __init__(self, cfg: config):
+        self.cfg = cfg
+
+        self.workQueue = queue.Queue(cfg.getBasicQueueLength())
         self.exitFlag = queue.Queue(1)
         self.exitFlag.put(int(1))
 
         self.threadList = []
-        for i in range(threadsnr):
+        for i in range(cfg.getBasicClientNr()):
             self.threadList.append("Thread-"+str(i))
         self.threads = []
 
@@ -27,16 +35,16 @@ class NetworkQueue(threading.Thread):
         signal.signal(signal.SIGINT, self.signal_handler)
 
         #number of clients plus 4 for puffer(dbRefresh)
-        self.pool = dbPool(threadsnr+4)
+        self.pool = dbPool(cfg)
 
-        self.refreshQueue = refreshNetworkQueue(chain, queuelenght, self, self.pool.getPool())
+        self.refreshQueue = refreshNetworkQueue(cfg.getBasicChain(), cfg.getBasicQueueLength(), self, self.pool.getPool())
         self.refreshQueue.start()
 
     def start(self):
         threadID = 1
 
         for tName in self.threadList:
-            thread = Client(threadID, self, self.exitFlag, self.getPool())
+            thread = Client(threadID, self, self.exitFlag, self.getPool(), self.cfg)
             thread.start()
             self.threads.append(thread)
             threadID += 1

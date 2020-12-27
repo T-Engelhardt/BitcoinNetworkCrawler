@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     import threading
     from mysql.connector import pooling
     from BitcoinNetworkClient.Network.bitcoinNetworkInfo import bitcoinNetInfo
+    from BitcoinNetworkClient.util.configParser import config
 
 from BitcoinNetworkClient.Network.responseHandlerThread import responseHandlerThread
 from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
@@ -23,11 +24,12 @@ import random
 
 class bitcoinConnection:
 
-    def __init__(self, motherThreadID: int, qdata: bitcoinNetInfo, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool):
+    def __init__(self, motherThreadID: int, qdata: bitcoinNetInfo, sendEvent: threading.Event, pool: pooling.MySQLConnectionPool, cfg: config):
         self.netInfo = qdata
+        self.cfg = cfg
         self.motherThreadID = motherThreadID
 
-        self.db = dbBitcoinCon(pool, qdata)
+        self.db = dbBitcoinCon(pool, qdata, cfg)
 
         self.sendEvent = sendEvent
         self.KeepAlive = True

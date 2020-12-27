@@ -37,7 +37,7 @@ class refreshNetworkQueue(threading.Thread):
                     break
                 if(x == 0):
                     logging.info("Queue Size: "+str(self.networkQueue.getQueueObject().qsize()))
-                    self.db = dbConnection(self.pool)
+                    self.db = dbConnection(self.pool, None)
                     self.db.fillQueue(self.chain, self.networkQueue, self.queuelenght)
                     self.db.closeDBConnection()
                 sleep(10)
@@ -49,6 +49,6 @@ class refreshNetworkQueue(threading.Thread):
         self.exitFlag = True
     
     def clearQueueTag(self):
-        self.db = dbConnection(self.pool)
+        self.db = dbConnection(self.pool, None)
         self.db.clearQueueTag(self.chain)
         self.db.closeDBConnection()

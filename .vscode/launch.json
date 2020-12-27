@@ -5,10 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Run Bitcoin Network Client",
+            "name": "Debug Regtest",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/start.py",
+            "args": [
+                "--config",
+                "debug.yaml"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Main",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/start.py",
+            "args": [
+                "--config",
+                "debugMain.yaml"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Default Main",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/start.py",
+            "args": [
+                "--config",
+                "default.yaml"
+            ],
             "console": "integratedTerminal"
         }
     ]
