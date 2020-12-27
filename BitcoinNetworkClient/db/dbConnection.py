@@ -148,7 +148,7 @@ class dbConnection:
 
         mycursor = self.getCursor()
 
-        sql = "UPDATE "+ chain +" SET added_to_queue = 0;"
+        sql = "UPDATE "+ chain +" SET added_to_queue = 0"
 
         self.acquireDBlock()
         self.cursorExecuteWait(mycursor, sql, None, "clearQueueTag")

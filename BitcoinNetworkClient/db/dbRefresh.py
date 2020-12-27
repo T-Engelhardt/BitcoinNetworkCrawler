@@ -26,7 +26,7 @@ class refreshNetworkQueue(threading.Thread):
         self.pool = pool
 
         #clear previous enqueued Items
-        self.clearQueueTag()
+        self.clearQueueTag(chain)
 
     def run(self):
 
@@ -48,7 +48,7 @@ class refreshNetworkQueue(threading.Thread):
     def stop(self):
         self.exitFlag = True
     
-    def clearQueueTag(self):
+    def clearQueueTag(self, chain: str):
         self.db = dbConnection(self.pool)
-        self.db.clearQueueTag(self.chain)
+        self.db.clearQueueTag(chain)
         self.db.closeDBConnection()
