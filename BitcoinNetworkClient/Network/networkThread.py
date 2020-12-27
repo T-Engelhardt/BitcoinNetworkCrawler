@@ -38,11 +38,9 @@ class Client(threading.Thread):
     def run(self):
         logging.info("Starting")
 
-        thisConnection = True
-
         while self.exitFlag.full():
 
-            while thisConnection:
+            while True:
                 logging.info("Open a new Client")
                 
                 qdata = self.NetQueue.getItemQueue()
@@ -51,7 +49,7 @@ class Client(threading.Thread):
                     logging.debug('Waiting for new Tasks')
                     #wait a few seconds for a new task
                     sleep(5)
-                    #close thisConnection
+                    #skip opening a new connection
                     break
 
                 #found new Task
@@ -76,9 +74,12 @@ class Client(threading.Thread):
                     #send and recive open so start connection
                     logging.info("init Connection")
                     self.bitcoinConnection.initConnection()
+                    #break to wait for childs
+                    break
                 else:
                     #close DB connection
-                    self.bitcoinConnection.closeDBConnection()
+                    self.bitcoinConnection.killConnection()
+                    #break to wait for childs
                     break
             
             logging.debug("Waiting for childs")
@@ -223,5 +224,4 @@ class ClientRecv(threading.Thread):
         logging.info("connection closed")
         #close socket, send Thread, and DB connection in BitcoinConnection
         self.server.close()
-        self.cBitcoinConnection.killSendThread()
-        self.cBitcoinConnection.closeDBConnection()
+        self.cBitcoinConnection.killConnection()

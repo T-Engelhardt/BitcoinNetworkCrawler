@@ -51,16 +51,13 @@ class responseHandlerThread(threading.Thread):
             self.cBitcoinConnection.getSendEvent().set()
 
         if cmd == "version":
-            ip = self.cBitcoinConnection.getIP()
-            port = self.cBitcoinConnection.getPort()
-            chain = self.cBitcoinConnection.getChain()
-            self.cBitcoinConnection.getDbConnector().insertJson(chain, ip, port, json_object)
+            self.cBitcoinConnection.getDbBitcoinCon().insertJson(json_object)
 
         if cmd == "addr":
-            self.cBitcoinConnection.getDbConnector().insertJson(None, None, None, json_object)
+            self.cBitcoinConnection.getDbBitcoinCon().insertJson(json_object)
             #close connection but only if we recived more then one addr
             if(json.loads(json_object)["payload"]["count"] != 1):
-                self.cBitcoinConnection.setKeepAlive(False)
+                self.cBitcoinConnection.signalKillConnection()
             #dont print addr
             return
 

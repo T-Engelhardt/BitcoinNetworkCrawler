@@ -7,13 +7,12 @@ if TYPE_CHECKING:
 
 from BitcoinNetworkClient.Network.responseHandlerThread import responseHandlerThread
 from BitcoinNetworkClient.Network.responseHandlerData import responseHandlerData
-from BitcoinNetworkClient.db.dbConnector import dbConnector
+from BitcoinNetworkClient.db.dbBitcoinCon import dbBitcoinCon
 
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinHeader
 from BitcoinNetworkClient.BitcoinData.bitcoinPayload import version
 from BitcoinNetworkClient.util.data2 import NetworkAddress, Vstr, services
 from BitcoinNetworkClient.util.data1 import Bint, Endian
-
 
 from typing import List
 from time import time
@@ -30,8 +29,7 @@ class bitcoinConnection:
 
         self.motherThreadID = motherThreadID
 
-        self.db = dbConnector(pool)
-        self.db.insertJson(self.chain, self.ip, self.port, None)
+        self.db = dbBitcoinCon(pool, self.chain, self.ip, self.port)
 
         self.sendEvent = sendEvent
         self.KeepAlive = True
@@ -54,25 +52,29 @@ class bitcoinConnection:
     def getSendEvent(self) -> threading.Event:
         return self.sendEvent
 
-    def getDbConnector(self) -> dbConnector:
+    def getDbBitcoinCon(self) -> dbBitcoinCon:
         return self.db
 
     def getKeepAlive(self):
         return self.KeepAlive
 
-    def setKeepAlive(self, Flag: bool):
-        self.KeepAlive = Flag
+    def signalKillConnection(self):
+        self.KeepAlive = False
+
+    def killConnection(self):
+        #wait for all repsonse operation before closing the db connection
+        self.waitForChilds()
+        #stop send thread
+        self.killSendThread()
+        #evaluate try
+        self.db.evaluateTry()
+        #close dbBitcoinCon
+        self.db.closeDBConnection()
 
     def waitForChilds(self):
         # Wait for all threads to complete
         for t in self.responseThreads:
             t.join()
-
-    def closeDBConnection(self):
-        #wait for all repsonse operation before closing the db connection
-        self.waitForChilds()
-        #close db connection
-        self.db.close()
 
     def killSendThread(self):
         #close send thread
@@ -91,7 +93,7 @@ class bitcoinConnection:
 
     def VersionMsg(self):
         tmp = version({
-            "version": Bint(70015, 32, Endian.LITTLE),
+            "version": Bint(70016, 32, Endian.LITTLE),
             "services": services([]),
             "timestamp": Bint(int(time()), 64, Endian.LITTLE),
             "addr_recv": (NetworkAddress({
@@ -107,7 +109,7 @@ class bitcoinConnection:
                 "port": Bint(0, 16, Endian.BIG)
             })),
             "nonce": Bint(random.getrandbits(64), 64, Endian.LITTLE),
-            "user_agent": Vstr("/Satoshi:0.20.1/"),
+            "user_agent": Vstr("/Satoshi:0.21.0/"),
             "start_height": Bint(1, 32, Endian.LITTLE),
             "relay": int(0)
         })

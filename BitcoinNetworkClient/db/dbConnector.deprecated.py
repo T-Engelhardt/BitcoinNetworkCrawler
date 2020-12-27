@@ -98,6 +98,7 @@ class dbConnector:
 
             #https://stackoverflow.com/a/3466
             #add 2 to prio for a try if succesfull reset to min(prio) + 1 in version msg
+            #TODO change to update
             sql = "INSERT INTO "+ chain +" (id, last_try_time, added_to_queue, try_count, queue_prio) VALUES (%s, NOW(), FALSE, 0, %s+2) \
                 ON DUPLICATE KEY UPDATE \
                 last_try_time=VALUES(last_try_time), \

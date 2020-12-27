@@ -5,12 +5,11 @@ if TYPE_CHECKING:
     from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
     from mysql.connector import pooling
 
-from BitcoinNetworkClient.db.dbConnector import dbConnector
+from BitcoinNetworkClient.db.dbConnection import dbConnection
 
 from time import sleep
 import logging
 import threading
-import queue
 
 class refreshNetworkQueue(threading.Thread):
 
@@ -38,9 +37,9 @@ class refreshNetworkQueue(threading.Thread):
                     break
                 if(x == 0):
                     logging.info("Queue Size: "+str(self.networkQueue.getQueueObject().qsize()))
-                    self.db = dbConnector(self.pool)
+                    self.db = dbConnection(self.pool)
                     self.db.fillQueue(self.chain, self.networkQueue, self.queuelenght)
-                    self.db.close()
+                    self.db.closeDBConnection()
                 sleep(10)
         
         #if exiting correctly unmark all Entries in the DB
@@ -50,6 +49,6 @@ class refreshNetworkQueue(threading.Thread):
         self.exitFlag = True
     
     def clearQueueTag(self):
-        self.db = dbConnector(self.pool)
+        self.db = dbConnection(self.pool)
         self.db.clearQueueTag(self.chain)
-        self.db.close()
+        self.db.closeDBConnection()

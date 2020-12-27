@@ -1,8 +1,10 @@
+from BitcoinNetworkClient.db.dbConnection import dbConnection
+from BitcoinNetworkClient.db.dbPool import dbPool
+from BitcoinNetworkClient.db.dbBitcoinCon import dbBitcoinCon
 import sys
 from BitcoinNetworkClient.db.dbConvert import dbConvert
 from BitcoinNetworkClient.db.dbRefresh import refreshNetworkQueue
 import threading
-from BitcoinNetworkClient.db.dbConnector import dbConnector
 from time import sleep
 from BitcoinNetworkClient.Network.networkQueue import NetworkQueue
 from BitcoinNetworkClient.Network.networkThread import Client
@@ -22,7 +24,7 @@ def start():
     
     print("RUN")
     
-    logging.basicConfig(level=logging.INFO, format='(%(threadName)-10s) %(message)s',)
+    logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-10s) %(message)s',)
 
     #ipList = [["127.0.0.1", 18331, "regtest"], ["127.0.0.1", 18332, "regtest"], ["127.0.0.1", 18333, "regtest"], ["127.0.0.1", 18334, "regtest"]]
     #ipList = [["34.80.224.42", 8333, "main"]]
@@ -35,6 +37,20 @@ def start():
     q = NetworkQueue("main", 10, 400)
     q.start()
     sys.exit(0)
+    
+    #pool = dbPool(1).getPool()
+
+    #test0 = dbConnection(pool)
+    #test0.insertIP([["regtest", "127.0.0.1", 18331]])
+    #test0.insertIP([["regtest", "127.0.0.1", 18332]])
+    #test0.insertIP([["regtest", "127.0.0.1", 18333]])
+    #test0.insertIP([["regtest", "127.0.0.1", 18334]])
+    #test0.closeDBConnection()
+
+    #test1 = dbBitcoinCon(pool, "main", "1.2.3.4", 8333)
+    #test1.closeDBConnection()
+    
+    #test1.insertIP([["main", "1.2.3.4", 8333]])
 
     #print(data1util.OnionToIpv6("j2ehpso7ngkscjrm.onion"))
     #print(data1util.Ipv6ToOnion(ipaddress.IPv6Address("fd87:d87e:eb43:437f:1ea0:8efb:8cab:85a4")))
@@ -47,7 +63,7 @@ def start():
     #q.closeEmptyOrNot(True)
     #q.waitForClients()
     
-    #db = dbConnector()
+
     #db.insertIP("testnet3", "127.0.0.3", 8312)
 
     #with open("BitcoinNetworkClient/test/bin/addr1000.bin", "rb") as f:
@@ -55,7 +71,6 @@ def start():
 
     #json_object = json.dumps(BitcoinHeader(read), indent = 4, cls=BitcoinEndcoder)
     #print(json_object)   
-    #db = dbConnector()
     #db.deleteChain("main")
     #db.deleteChain("regtest")
     #db.deleteChain("testnet3")
