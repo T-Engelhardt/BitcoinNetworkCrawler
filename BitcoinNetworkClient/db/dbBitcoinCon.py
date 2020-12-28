@@ -97,6 +97,9 @@ class dbBitcoinCon(dbConnection):
 
         elif(data["command"] == "addr"):
 
+            if(self.cfg.getDebugSkipInsert()):
+                logging.info("Skipping Insert IP")
+                return
             logging.info("addr json")
 
             iChain = data["chain"]

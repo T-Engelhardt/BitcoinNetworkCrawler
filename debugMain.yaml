@@ -14,3 +14,6 @@ mysql:
 
 geoip:
     enable: "1"
+
+debug:
+    skipInsert: "1"

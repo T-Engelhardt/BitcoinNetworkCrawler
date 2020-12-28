@@ -121,6 +121,18 @@ class config:
             result = self.projectPath + "db/geoip/"
         return result
 
+    def getDebugSkipInsert(self) -> bool:
+        try:
+            tmp = self.cfg["debug"]["skipInsert"]
+            if(tmp == "1"):
+                result = True
+            else:
+                result = False
+        except:
+            #default
+            result = False
+        return result
+
     def __str__(self):
         result = ""
         result += "ClientNr: " + str(self.getBasicClientNr()) +"\t\n"
@@ -133,5 +145,6 @@ class config:
         result += "SqlPWD: " + "***" +"\t\n"
         result += "GeoIP Enabled: " + str(self.getGeoIPEnable()) +"\t\n"
         result += "GeoIp Dir: " + str(self.getGeoIPDir()) +"\t\n"
+        result += "DebugSkipInsert: " + str(self.getDebugSkipInsert()) +"\t\n"
 
         return result
