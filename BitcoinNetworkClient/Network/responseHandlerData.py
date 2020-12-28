@@ -17,7 +17,7 @@ class responseHandlerData():
         self.sendCmd = []
 
         self.sendNextMsgLock = threading.Lock()
-        self.sendNextMsg = None
+        self.sendNextMsg = []
 
         self.motherTreadID = motherTreadID
 
@@ -78,7 +78,7 @@ class responseHandlerData():
         self.sendNextMsgLock.acquire()
         try:
             logging.debug('Write: Acquired lock -> sendNextMsg')
-            self.sendNextMsg = msg
+            self.sendNextMsg.append(msg)
         finally:
             self.sendNextMsgLock.release()
             logging.debug('Write: Release for lock -> sendNextMsg')
@@ -89,6 +89,8 @@ class responseHandlerData():
         try:
             logging.debug('Read: Acquired lock -> sendNextMsg')
             result = self.sendNextMsg
+            #clear after sending the messages
+            self.sendNextMsg = []
         finally:
             self.sendNextMsgLock.release()
             logging.debug('Read: Release lock -> sendNextMsg')

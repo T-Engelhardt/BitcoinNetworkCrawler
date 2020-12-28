@@ -39,9 +39,18 @@ class responseHandlerThread(threading.Thread):
     def handleResponse(self, Header: BitcoinHeader):
 
         cmd = Header.getDir()["cmd"]
+        logging.debug("Recived -> " + cmd)
         json_object = json.dumps(Header, indent = 4, cls=BitcoinEndcoder)
+
+        if cmd == "sendaddrv2":
+            self.cBitcoinConnection.enableAddrV2()
         
         if cmd == "verack":
+            #send sendaddrv2 msg before verack
+            if(self.cBitcoinConnection.getAddrV2Flag()):
+                self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.sendAddrV2())
+                self.cBitcoinConnection.getSendEvent().set()
+            #send verack
             self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.verackMsg())
             self.cBitcoinConnection.getSendEvent().set()
         
@@ -60,6 +69,9 @@ class responseHandlerThread(threading.Thread):
                 self.cBitcoinConnection.signalKillConnection()
             #dont print addr
             return
+
+        if cmd == "addrv2":
+            self.cBitcoinConnection.getDbBitcoinCon().insertJson(json_object)
 
         if cmd == "feefilter":
             #last message before inv data

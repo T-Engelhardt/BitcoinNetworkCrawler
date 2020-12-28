@@ -1,0 +1,70 @@
+from enum import Enum
+
+
+class SERVICES_FLAG(Enum):
+        #log2(1,2,4,8,...)
+        #bit position
+        NODE_NETWORK = 0 #1
+        NODE_GETUTXO  = 1 #2
+        NODE_BLOOM = 2 #4
+        NODE_WITNESS = 3 #8
+        NODE_XTHIN = 4 #16
+        UNKNOW_FLAG_5 = 5 #32
+        NODE_COMPACT_FILTERS = 6 #64
+        UNKNOW_FLAG_7 = 7 #128
+        UNKNOW_FLAG_8 = 8 #256
+        UNKNOW_FLAG_9 = 9 #512
+        NODE_NETWORK_LIMITED = 10 #1024
+        UNKNOW_FLAG_11 = 11
+        UNKNOW_FLAG_12 = 12
+        UNKNOW_FLAG_13 = 13
+        UNKNOW_FLAG_14 = 14
+        UNKNOW_FLAG_15 = 15
+        UNKNOW_FLAG_16 = 16
+        UNKNOW_FLAG_17 = 17
+        UNKNOW_FLAG_18 = 18
+        UNKNOW_FLAG_19 = 19
+        UNKNOW_FLAG_20 = 20
+        UNKNOW_FLAG_21 = 21
+        UNKNOW_FLAG_22 = 22
+        UNKNOW_FLAG_23 = 23
+        UNKNOW_FLAG_24 = 24
+        UNKNOW_FLAG_25 = 25
+        UNKNOW_FLAG_26 = 26
+        UNKNOW_FLAG_27 = 27
+        UNKNOW_FLAG_28 = 28
+        UNKNOW_FLAG_29 = 29
+        UNKNOW_FLAG_30 = 30
+        UNKNOW_FLAG_31 = 31
+        UNKNOW_FLAG_32 = 32
+        UNKNOW_FLAG_33 = 33
+        UNKNOW_FLAG_34 = 34
+        UNKNOW_FLAG_35 = 35
+        UNKNOW_FLAG_36 = 36
+        UNKNOW_FLAG_37 = 37
+        UNKNOW_FLAG_38 = 38
+        UNKNOW_FLAG_39 = 39
+        UNKNOW_FLAG_40 = 40
+        UNKNOW_FLAG_41 = 41
+        UNKNOW_FLAG_42 = 42
+        UNKNOW_FLAG_43 = 43
+        UNKNOW_FLAG_44 = 44
+        UNKNOW_FLAG_45 = 45
+        UNKNOW_FLAG_46 = 46
+        UNKNOW_FLAG_47 = 47
+        UNKNOW_FLAG_48 = 48
+        UNKNOW_FLAG_49 = 49
+        UNKNOW_FLAG_50 = 50
+        UNKNOW_FLAG_51 = 51
+        UNKNOW_FLAG_52 = 52
+        UNKNOW_FLAG_53 = 53
+        UNKNOW_FLAG_54 = 54
+        UNKNOW_FLAG_55 = 55
+        UNKNOW_FLAG_56 = 56
+        UNKNOW_FLAG_57 = 57
+        UNKNOW_FLAG_58 = 58
+        UNKNOW_FLAG_59 = 59
+        UNKNOW_FLAG_60 = 60
+        UNKNOW_FLAG_61 = 61
+        UNKNOW_FLAG_62 = 62
+        UNKNOW_FLAG_63 = 63

@@ -1,9 +1,13 @@
 from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
+from BitcoinNetworkClient.util.serviceEnum import SERVICES_FLAG
 
+import logging
 import binascii
 from enum import Enum
 import ipaddress
 import math
+from base64 import b32decode, b32encode
+import hashlib
 
 
 class Vint:
@@ -33,10 +37,10 @@ class Vint:
     def VintToBytes(self, Object):
         if Object[0] < 253:
             self.cbint = Bint(Object[0], 8, Endian.LITTLE)
-        elif Object[0] <= 65535:
+        elif Object[0] < 254:
             self.cPrefixBytes = b'\xfd'
             self.cbint = Bint(Object[1:3], 16, Endian.LITTLE)
-        elif Object[0] <= 4294967295:
+        elif Object[0] < 255:
             self.cPrefixBytes = b'\xfe'
             self.cbint = Bint(Object[1:5], 32, Endian.LITTLE)
         else:
@@ -106,7 +110,7 @@ class NetworkAddress:
     '''
     test1 = NetworkAddress({
         "time": Bint(data1util.getByteTime(), 32, Endian.BIG),
-        "services": services([services.SERVICES_FLAG.NODE_NETWORK]),
+        "services": services([SERVICES_FLAG.NODE_NETWORK]),
         "IPv6/4": ipaddress.ip_address('10.0.0.1'),
         "port": Bint(8333, 16, Endian.BIG)
         })
@@ -184,32 +188,29 @@ class NetworkAddress:
 
 class services:
 
-    class SERVICES_FLAG(Enum):
-        #log2(1,2,4,8,1024)
-        #bit position
-        NODE_NETWORK = 0 #1
-        NODE_GETUTXO  = 1 #2
-        NODE_BLOOM = 2 #4
-        NODE_WITNESS = 3 #8
-        NODE_NETWORK_LIMITED = 10 #1024
-
     def __init__(self, Object):
 
         self.cbytes = b''
         self.cservices = "" #hex
         self.cservicesNames = []
+        self.cservicesInt = 0
 
         if(type(Object) is bytes):
             self.cbytes = Object
             self.bytesToDir()
+        elif(type(Object) is int):
+            self.intToServiceNames(Object)
+            self.StrToBytesInt()
         else:
             self.cservicesNames = Object
-            self.StrToBytes()
+            self.StrToBytesInt()
 
     def bytesToDir(self):
-        #hex of services
+        #hex and int of services
         iBint = Bint(data1util.swapBytes(self.cbytes), 64, Endian.BIG)
+        self.cservicesInt = int(iBint)
         self.cservices = iBint.getHex()
+
         #get bit from services
         #https://stackoverflow.com/a/4859937
         binServices = bin(int(self.cservices, 16))[2:].zfill(64)
@@ -223,19 +224,44 @@ class services:
             posIndex -= 1
         
         #compare pos with bit heigth of flags
-        for x in self.SERVICES_FLAG:
+        for x in SERVICES_FLAG:
             if(x.value in posServices):
                 self.cservicesNames.append(x)
 
-    def StrToBytes(self):
+    def StrToBytesInt(self):
+        #creates bytes and int representation
         iFlagInt = 0
         for x in self.cservicesNames:
             #2^bitPos
             iFlagInt += (math.pow(2, x.value))
         
+        self.cservicesInt = int(iFlagInt)
         iFlagBin = Bint(int(iFlagInt), 64, Endian.BIG)
         self.cservices = iFlagBin.getHex()
         self.cbytes = data1util.swapBytes(bytes(iFlagBin))
+
+    def intToServiceNames(self, servInt: int):
+        tmp = 0
+        #substract value from int if < 0 flag is not possible
+        for x in reversed(SERVICES_FLAG):
+            #2^bitPos
+            tmp = servInt - math.pow(2, x.value)
+            if(tmp < 0):
+                #flag not valid
+                continue
+            else:
+                #safe substract value for next loop run
+                servInt = tmp
+                self.cservicesNames.append(x)
+                #all flags found
+                if(tmp) == 0:
+                    #reverse back
+                    self.cservicesNames.reverse()
+                    return
+        #in last iteration of the loop tmp gets -1 if int is zero
+        if(tmp == -1): return
+        logging.warning("Unknown Service Flag " + str(int(tmp)))
+        #raise ValueError("Not a valid Int Service representation")
 
     def getServicesNamesEnum(self):
         return self.cservicesNames
@@ -249,6 +275,9 @@ class services:
     def getServicesHex(self):
         return self.cservices
     
+    def __int__(self):
+        return self.cservicesInt
+
     def __bytes__(self):
         return self.cbytes
 
@@ -314,3 +343,190 @@ class InventoryVector:
     def __len__(self):
         #fixed length
         return len(self.cbytes)
+
+class NetworkAddressV2:
+
+    #get length from data1 util
+    class NETWORK_ID(Enum):
+        IPV4 = 1
+        IPV6  = 2
+        TORV2 = 3
+        TORV3 = 4
+        I2P = 5
+        CJDNS = 6
+
+    def __init__(self, Object):
+
+        self.cdir = {
+            "time": type(Bint),
+            "services": type(services),
+            "networkID": type(NetworkAddressV2.NETWORK_ID),
+            "addr[bytes]": type(bytes),
+            "addr": "TBD",
+            "port": type(Bint)
+        }
+        self.cbytes = b''
+        self.cdir = Object
+        self.createIPString()
+
+        #TODO create bytes
+        #self.bytesToNA(Object)
+
+    def createIPString(self):
+        if(self.cdir["networkID"] == NetworkAddressV2.NETWORK_ID.IPV4):
+            self.cdir["addr"] = ipaddress.IPv4Address(self.cdir["addr[bytes]"])
+        elif(self.cdir["networkID"] == NetworkAddressV2.NETWORK_ID.IPV6):
+            self.cdir["addr"] = ipaddress.IPv6Address(self.cdir["addr[bytes]"])
+        elif(self.cdir["networkID"] == NetworkAddressV2.NETWORK_ID.TORV2):
+            self.cdir["addr"] = onionV2(self.cdir["addr[bytes]"])
+        elif(self.cdir["networkID"] == NetworkAddressV2.NETWORK_ID.TORV3):
+            self.cdir["addr"] = onionV3(self.cdir["addr[bytes]"])
+        else:
+            #TODO
+            logging.warning("Unimplemented Network ID" + self.cdir["networkID"].name)
+            print(self.cdir["addr[bytes]"])
+
+    def bytesToNA(self, Object):
+        raise Exception("Not implemented yet")
+
+    def __bytes__(self):        
+        return self.cbytes
+
+    def __len__(self):
+        return len(bytes(self))
+
+    def getDir(self):
+        return self.cdir
+
+class NetworkAddressV2Helper:
+    
+    def getLengthNetworkID(id: NetworkAddressV2.NETWORK_ID) -> int:
+
+        if(id == NetworkAddressV2.NETWORK_ID.IPV4):
+            return 4
+        elif(id == NetworkAddressV2.NETWORK_ID.IPV6):
+            return 16
+        elif(id == NetworkAddressV2.NETWORK_ID.TORV2):
+            return 10
+        elif(id == NetworkAddressV2.NETWORK_ID.TORV3):
+            return 32
+        elif(id == NetworkAddressV2.NETWORK_ID.I2P):
+            return 32
+        elif(id == NetworkAddressV2.NETWORK_ID.CJDNS):
+            return 16
+        else:
+            raise Exception("No Valid Network ID with length found")
+
+    def getNetworkID(id: bytes) -> NetworkAddressV2.NETWORK_ID:
+
+        if(id == b'\x01'):
+            return NetworkAddressV2.NETWORK_ID.IPV4
+        elif(id == b'\x02'):
+            return NetworkAddressV2.NETWORK_ID.IPV6
+        elif(id == b'\x03'):
+            return NetworkAddressV2.NETWORK_ID.TORV2
+        elif(id == b'\x04'):
+            return NetworkAddressV2.NETWORK_ID.TORV3
+        elif(id == b'\x05'):
+            return NetworkAddressV2.NETWORK_ID.I2P
+        elif(id == b'\x06'):
+            return NetworkAddressV2.NETWORK_ID.CJDNS
+        else:
+            raise Exception("No Valid Network ID found")
+
+class onionV2():
+
+    def __init__(self, Object):
+
+        self.cbytes = b''
+        self.cStr = ""
+
+        if(type(Object) is bytes):
+            self.bytesToStr(Object)
+        else:
+            self.strToBytes(Object)
+
+    def bytesToStr(self, onion: bytes):
+        baseString = b32encode(onion).decode("utf-8").lower()
+        if(len(baseString) != 16):
+            raise ValueError('Invalid onion %s', baseString)
+        self.cStr = baseString + ".onion"
+
+    def strToBytes(self, onion: str):
+        if len(onion)>6 and onion.endswith('.onion'):
+            vchAddr = b32decode(onion[0:-6], True)
+            if len(vchAddr) != 10:
+                raise ValueError('Invalid onion %s' % vchAddr)
+            self.cbytes = vchAddr
+        else:
+            raise Exception("No Onion Addres found")
+
+    def __str__(self):
+        return self.cStr
+
+    def __bytes__(self):
+        return self.cbytes
+
+class onionV3():
+
+    def __init__(self, Object):
+
+        self.cbytes = b''
+        self.cStr = ""
+
+        if(type(Object) is bytes):
+            self.bytesToStr(Object)
+        else:
+            self.strToBytes(Object)
+
+    def bytesToStr(self, onion: bytes):
+        '''
+        https://github.com/bitcoin/bips/blob/master/bip-0155.mediawiki#appendix-b-tor-v3-address-encoding
+        '''
+        checksumPayload = b".onion checksum" + onion + b"\x03"
+        m = hashlib.sha3_256()
+        m.update(checksumPayload)
+        checksum = m.digest()
+
+        payload = onion + checksum[:2] + b"\x03"
+
+        baseString = b32encode(payload).decode("utf-8").lower()
+        if(len(baseString) != 56):
+            raise ValueError('Invalid onion %s', baseString)
+        self.cStr = baseString + ".onion"
+
+    def strToBytes(self, onion: str):
+        if len(onion)>6 and onion.endswith('.onion'):
+            #remove .onion
+            vchAddr = b32decode(onion[0:-6], True)
+
+            if len(vchAddr) != 35:
+                raise ValueError('Invalid onion %s' % vchAddr)
+            
+            #pubkey | H(Checksum) | Version
+            if(self.validatePubKey(vchAddr[:-3], vchAddr[-3:-1], vchAddr[-1])):
+                #only safe pubkey
+                self.cbytes = vchAddr[:-3]
+            else:
+                raise ValueError("Pubkey could not be validated")
+        else:
+            raise Exception("No Onion Addres found")
+
+    def validatePubKey(self, pubKey: bytes, HChecksum: bytes, version: bytes) -> bool:
+
+        checksumPayload = b".onion checksum" + pubKey + b"\x03"
+        m = hashlib.sha3_256()
+        m.update(checksumPayload)
+        checksumNew = m.digest()
+
+        if(HChecksum != checksumNew[:2]):
+            return False
+        if(bytes([version]) != b'\03'):
+            return False
+        return True
+
+    def __str__(self):
+        return self.cStr
+
+    def __bytes__(self):
+        return self.cbytes

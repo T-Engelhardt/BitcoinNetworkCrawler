@@ -1,5 +1,5 @@
 from BitcoinNetworkClient.util.data1 import Bint, Bchar, Endian, data1util
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, addrv2, inv, ping, version
 
 import hashlib
 
@@ -94,6 +94,8 @@ class BitcoinHeader:
                 self.cdir["payload"] = ping(self.PayloadBytes)
             elif(self.cdir["cmd"] == "addr"):
                 self.cdir["payload"] = addr(self.PayloadBytes)
+            elif(self.cdir["cmd"] == "addrv2"):
+                self.cdir["payload"] = addrv2(self.PayloadBytes)
             else:
                 self.cdir["payload"] = self.PayloadBytes
 

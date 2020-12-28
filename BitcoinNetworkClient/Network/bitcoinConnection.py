@@ -36,6 +36,8 @@ class bitcoinConnection:
         self.cResponseHandlerData = responseHandlerData(self.motherThreadID)
         self.responseThreads = []
 
+        self.Addrv2 = False
+
     def initConnection(self):
         self.cResponseHandlerData.setNextMsg(self.VersionMsg())
         self.sendEvent.set()
@@ -45,7 +47,7 @@ class bitcoinConnection:
         self.responseThreads.append(thread)
         thread.start()
 
-    def getSendMsg(self):
+    def getSendMsg(self) ->list(BitcoinHeader):
         return self.cResponseHandlerData.getNextMsg()
 
     def getSendEvent(self) -> threading.Event:
@@ -59,6 +61,12 @@ class bitcoinConnection:
 
     def signalKillConnection(self):
         self.KeepAlive = False
+
+    def enableAddrV2(self):
+        self.Addrv2 = True
+
+    def getAddrV2Flag(self) -> bool:
+        return self.Addrv2
 
     def killConnection(self):
         #wait for all repsonse operation before closing the db connection
@@ -117,6 +125,13 @@ class bitcoinConnection:
             "chain": self.netInfo.getChain(),
             "cmd": "version",
             "payload": tmp
+        })
+
+    def sendAddrV2(self):
+        return BitcoinHeader({
+            "chain": self.netInfo.getChain(),
+            "cmd": "sendaddrv2",
+            "payload": b''
         })
 
     def verackMsg(self):

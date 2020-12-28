@@ -1,8 +1,8 @@
 #class to determine which bitcoinPayload is used for bitcoinData.Header
 from BitcoinNetworkClient.BitcoinData.bitcoinData import BitcoinConst, BitcoinHeader
-from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, inv, ping, verack, version
+from BitcoinNetworkClient.BitcoinData.bitcoinPayload import addr, addrv2, inv, ping, verack, version
 from BitcoinNetworkClient.util.data1 import Bchar, Bint, data1util
-from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, Vint, Vstr, services
+from BitcoinNetworkClient.util.data2 import InventoryVector, NetworkAddress, NetworkAddressV2, Vint, Vstr, onionV2, onionV3, services
 
 import binascii
 import json
@@ -84,6 +84,27 @@ class BitcoinEndcoder(json.JSONEncoder):
                 "count": obj.cdir["count"],
                 "addr_list": obj.cdir["addr_list"]
             })
+        if isinstance(obj, addrv2):
+            return ({
+                "count": obj.cdir["count"],
+                "addr_list": obj.cdir["addr_list"]
+            })
+        if isinstance(obj, NetworkAddressV2):
+            return ({
+                "time": obj.cdir["time"],
+                "time[Human]": str(data1util.getTimefromBint(obj.cdir["time"])),
+                "services": obj.cdir["services"],
+                "networkID": obj.cdir["networkID"],
+                "addr": obj.cdir["addr"],
+                "port": obj.cdir["port"],
+            })
+        if isinstance(obj, onionV2):
+            return str(obj)
+        if isinstance(obj, onionV3):
+            return str(obj)
+        if isinstance(obj, NetworkAddressV2.NETWORK_ID):
+            return obj.name
+
         return json.JSONEncoder.default(self, obj)
 
 class cutBitcoinMsg:

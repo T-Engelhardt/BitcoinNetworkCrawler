@@ -108,6 +108,21 @@ class dbBitcoinCon(dbConnection):
                 insertArray.append([iChain, payload["IPv6/4"], payload["port"]])
             self.insertIP(insertArray, self.getMinPrio(iChain))
 
+        elif(data["command"] == "addrv2"):
+
+            if(self.cfg.getDebugSkipInsert()):
+                logging.info("Skipping Insert IP")
+                return
+            logging.info("addrv2 json")
+
+            iChain = data["chain"]
+            insertArray = []
+            for payload in data["payload"]["addr_list"]:
+                #not implemented or false Input
+                if(payload["addr"] == "TBD"): continue
+                insertArray.append([iChain, payload["addr"], payload["port"]])
+            self.insertIP(insertArray, self.getMinPrio(iChain))
+
         else:
             logging.info("no valid json found")
 

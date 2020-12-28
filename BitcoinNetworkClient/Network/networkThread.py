@@ -146,10 +146,13 @@ class ClientSent(threading.Thread):
 
             senddata = self.cBitcoinConnection.getSendMsg()
             #saftey check -> Can be remove probably in the future
-            if(senddata != None):
+            if(senddata[0] != None):
                 try:
-                    logging.debug("send Data: " + senddata.getDir()["cmd"])
-                    self.server.send(bytes(senddata))
+                    bytesmsg = b''
+                    for data in senddata:
+                        logging.debug("send Data: " + data.getDir()["cmd"])
+                        bytesmsg += bytes(data)
+                    self.server.send(bytesmsg)
                 except Exception as e:
                     logging.warning(e)
                     break
