@@ -45,6 +45,9 @@ class Client(threading.Thread):
             while True:
                 logging.info("Open a new Client")
                 
+                #reset ThreadChilds all threads should be closed by now
+                self.ThreadChilds = []
+                
                 qdata = self.NetQueue.getItemQueue()
                 if(qdata == None):
                     #wait for new queue entrys
@@ -65,8 +68,6 @@ class Client(threading.Thread):
                 connected = self.open_socket()
 
                 if(connected):
-                    #reset ThreadChilds all threads should be closed by now
-                    self.ThreadChilds = []
                     #append to thread list
                     self.ThreadChilds.append(ClientSent(self.threadID, self.server, self.bitcoinConnection))
                     self.ThreadChilds.append(ClientRecv(self.threadID, self.server, self.bitcoinConnection))
@@ -145,12 +146,12 @@ class ClientSent(threading.Thread):
             self.event.wait()
 
             senddata = self.cBitcoinConnection.getSendMsg()
-            #saftey check -> Can be remove probably in the future
-            if(senddata[0] != None):
+            #exit if in senddata None Element
+            if(None not in senddata):
                 try:
                     bytesmsg = b''
                     for data in senddata:
-                        logging.debug("send Data: " + data.getDir()["cmd"])
+                        logging.info("send Data: " + data.getDir()["cmd"])
                         bytesmsg += bytes(data)
                     self.server.send(bytesmsg)
                 except Exception as e:
