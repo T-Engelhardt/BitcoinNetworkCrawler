@@ -35,11 +35,13 @@ class responseHandlerThread(threading.Thread):
             except Exception as e:
                 #no valid payload was found
                 logging.warning(e)
+        #afer all Response got their handling send back response
+        self.cBitcoinConnection.getSendEvent().set()
 
     def handleResponse(self, Header: BitcoinHeader):
 
         cmd = Header.getDir()["cmd"]
-        logging.debug("Recived -> " + cmd)
+        logging.info("Recived -> " + cmd)
         json_object = json.dumps(Header, indent = 4, cls=BitcoinEndcoder)
 
         if cmd == "sendaddrv2":
@@ -49,15 +51,12 @@ class responseHandlerThread(threading.Thread):
             #send sendaddrv2 msg before verack
             if(self.cBitcoinConnection.getAddrV2Flag()):
                 self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.sendAddrV2())
-                self.cBitcoinConnection.getSendEvent().set()
             #send verack
             self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.verackMsg())
-            self.cBitcoinConnection.getSendEvent().set()
         
         if cmd == "ping":
             pingNonce = Header.getDir()["payload"]
             self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.pongMsg(bytes(pingNonce)))
-            self.cBitcoinConnection.getSendEvent().set()
 
         if cmd == "version":
             self.cBitcoinConnection.getDbBitcoinCon().insertJson(json_object)
@@ -80,9 +79,10 @@ class responseHandlerThread(threading.Thread):
             if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
                 self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.getaddrMsg())
                 self.cResponseHandlerData.addSendCmd("getaddr")
-                self.cBitcoinConnection.getSendEvent().set()
 
         if cmd == "inv":
+            #Debug print inv Data
+            '''
             #remove unnwanted inv data
             wantedInv = []
             tmp = json.loads(json_object)
@@ -98,14 +98,15 @@ class responseHandlerThread(threading.Thread):
                 "payload": wantedInv
             }
             #print(json.dumps(showInv, indent= 4))
+            '''
 
             #send getaddr if not already send
             #second getadr because < 70013 is not sending feefilter msg
             if(self.cResponseHandlerData.getSendCmd().count("getaddr") == 0):
                 self.cResponseHandlerData.setNextMsg(self.cBitcoinConnection.getaddrMsg())
                 self.cResponseHandlerData.addSendCmd("getaddr")
-                self.cBitcoinConnection.getSendEvent().set()
             return
 
+        #Debug print every Json msg
         #default
         #print(json_object)    
