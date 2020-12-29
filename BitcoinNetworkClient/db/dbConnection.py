@@ -143,7 +143,7 @@ class dbConnection:
         self.releaseDBlock()
         mycursor.close()
 
-        logging.debug("Min Queue Prio is :" + str(myresult[0][0]))
+        logging.debug("Min Queue Prio is: " + str(myresult[0][0]))
 
         return myresult[0][0]
 

@@ -266,7 +266,7 @@ class addrv2:
             self.cdir["addr_list"].append(NetworkAddressV2(result))
 
     def addrArrayToBytes(self, Object):
-        #TODO
+        #TODO create bytes
         raise Exception("Not implemented yet")
 
     def getDir(self):

@@ -62,19 +62,17 @@ class dbBitcoinCon(dbConnection):
 
             protocolVersion = data["payload"]["version"]
             payloadServices = data["payload"]["services"]
-            payloadServicesHex = payloadServices["hex"]
             payloadUserAgent = data["payload"]["user_agent"]
             payloadStartHeight = data["payload"]["start_height"]
 
 
             sql = "Update "+ self.netInfo.getChain() +" SET \
                 protocolVersion = %s, \
-                servicesHex = %s, \
                 user_agent = %s, \
                 start_height = %s \
                 WHERE id = %s"
 
-            val = (protocolVersion, payloadServicesHex, payloadUserAgent, payloadStartHeight, self.dbID)
+            val = (protocolVersion, payloadUserAgent, payloadStartHeight, self.dbID)
 
             self.acquireDBlock()      
             self.cursorExecuteWait(mycursor, sql, val, "insert Json Version")
@@ -83,12 +81,21 @@ class dbBitcoinCon(dbConnection):
 
             mycursor.close()
 
+            #insert Service Data
+            try:
+                self.insertServiceInfo(payloadServices)
+            except Exception as e:
+                logging.warning(e)
+
             if(self.getConfig().getGeoIPEnable()):
                 #insert geo DATA -> skip geodata for .onion
                 if(self.netInfo.getIP().endswith(".onion")):
                     pass
                 else:
-                    dbGeoIp(self.netInfo, self.dbID, self, self.getConfig()).insertGeoData()
+                    try:
+                        dbGeoIp(self.netInfo, self.dbID, self, self.getConfig()).insertGeoData()
+                    except Exception as e:
+                        logging.warning(e)
             else:
                 logging.info("Skipping GeoIP")
 
@@ -118,9 +125,14 @@ class dbBitcoinCon(dbConnection):
             iChain = data["chain"]
             insertArray = []
             for payload in data["payload"]["addr_list"]:
-                #not implemented or false Input
-                if(payload["addr"] == "TBD"): continue
-                insertArray.append([iChain, payload["addr"], payload["port"]])
+                if(payload["networkID"] == "IPV4" or
+                    payload["networkID"] == "IPV6" or
+                    payload["networkID"] == "TORV2" or
+                    payload["networkID"] == "TORV3"):
+                    insertArray.append([iChain, payload["addr"], payload["port"]])
+                else:
+                    logging.warning("Found unimplemented NetworkID" + payload["networkID"])
+                    continue
             self.insertIP(insertArray, self.getMinPrio(iChain))
 
         else:
@@ -160,6 +172,59 @@ class dbBitcoinCon(dbConnection):
         self.acquireDBlock()      
         self.cursorExecuteWait(mycursor, sql, val, "evaluateTry in DB")
         self.commitDB("evaluateTry in DB")
+        self.releaseDBlock()
+
+        mycursor.close()
+
+    def insertServiceInfo(self, serviceData: str):
+
+        mycursor = self.getCursor()
+
+        #check if there is already an entry with given hex
+        sql = "SELECT serviceDataID FROM "+ self.netInfo.getChain() +"servicedata WHERE serviceHex = %s"
+        val = (serviceData["hex"],)
+
+        self.acquireDBlock()      
+        self.cursorExecuteWait(mycursor, sql, val, "Check if Hex in ServiceData DB")
+        myresult = mycursor.fetchall()
+        self.releaseDBlock()
+
+        if(len(myresult) == 0):
+            serviceDataID = None
+            logging.debug("No Hex in ServiceData DB found")
+        else:
+            serviceDataID = myresult[0][0]
+            logging.debug("Hex already in ServiceData DB -> " + str(serviceDataID))
+
+        if(serviceDataID == None):
+
+            #insert new hex/names value in ServiceDataDB
+            sql = "INSERT INTO "+ self.netInfo.getChain() +"servicedata (serviceHex, serviceName) VALUES(%s, %s)"
+            #create str from pyhton list and cut array [] brackets away
+            val = (serviceData["hex"], str(serviceData["names"])[1:-1])
+
+            logging.debug("Insert new Service Data into ServiceDataDB")
+            self.acquireDBlock()      
+            self.cursorExecuteWait(mycursor, sql, val, "Insert into ServiceData DB")
+            self.releaseDBlock()
+
+            #change serviceDataID to LAST_INSERT_ID
+            sqlNext = "Update "+ self.netInfo.getChain() +" SET \
+                serviceDataID = LAST_INSERT_ID() \
+                WHERE id = %s"
+            valNext = (self.dbID,)
+
+        else:
+
+            #serivceData already in ServiceDataDB so serviceDataID is needed to update ServiceData in chain DB
+            sqlNext = "Update "+ self.netInfo.getChain() +" SET \
+                serviceDataID = %s \
+                WHERE id = %s"
+            valNext = (serviceDataID, self.dbID)
+
+        self.acquireDBlock()      
+        self.cursorExecuteWait(mycursor, sqlNext, valNext, "Insert ServiceData into chain DB")
+        self.commitDB("Insert ServiceData into chain DB")
         self.releaseDBlock()
 
         mycursor.close()

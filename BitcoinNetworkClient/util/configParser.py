@@ -65,6 +65,18 @@ class config:
             result = logging.DEBUG
         return result
 
+    def getLogSystemd(self) -> bool:
+        try:
+            tmp = self.cfg["log"]["systemd"]
+            if(tmp == "1"):
+                result = True
+            else:
+                result = False
+        except:
+            #default
+            result = False
+        return result
+
     def getSqlHost(self) -> str:
         try:
             result = self.cfg["mysql"]["host"]
@@ -139,6 +151,7 @@ class config:
         result += "QueueLength: " + str(self.getBasicQueueLength()) +"\t\n"
         result += "Chain: " + str(self.getBasicChain()) +"\t\n"
         result += "LogLevel: " + str(self.getLogLevel()) +"\t\n"
+        result += "LogSystemd: " + str(self.getLogSystemd()) +"\t\n"
         result += "SqlHost: " + str(self.getSqlHost()) +"\t\n"
         result += "SqlDB: " + str(self.getSqlDB()) +"\t\n"
         result += "SqlUser: " + str(self.getSqlUser()) +"\t\n"

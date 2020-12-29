@@ -33,6 +33,7 @@ class NetworkQueue(threading.Thread):
 
         #register signal_handler
         signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
 
         #number of clients plus 4 for puffer(dbRefresh)
         self.pool = dbPool(cfg)

@@ -382,7 +382,6 @@ class NetworkAddressV2:
         elif(self.cdir["networkID"] == NetworkAddressV2.NETWORK_ID.TORV3):
             self.cdir["addr"] = onionV3(self.cdir["addr[bytes]"])
         else:
-            #TODO
             logging.warning("Unimplemented Network ID" + self.cdir["networkID"].name)
             print(self.cdir["addr[bytes]"])
 
