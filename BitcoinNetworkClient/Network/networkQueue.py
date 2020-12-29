@@ -85,8 +85,8 @@ class NetworkQueue(threading.Thread):
             self.getLock.release()
             logging.debug("Released lock -> getItemQueue")
             return item
-        except Exception as e:
-            logging.warning(e)
+        except queue.Empty:
+            logging.info("Queue Empty")
         self.getLock.release()
         logging.debug("Released lock -> getItemQueue")
         return None
